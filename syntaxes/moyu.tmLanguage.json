@@ -1,0 +1,134 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Moyu Text",
+  "scopeName": "text.moyu",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#prose" },
+    { "include": "#code" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "keyword.control.directive.moyu",
+          "match": "^[ \\t]*#[ \\t]*(include|define|pragma|ifdef|ifndef|endif|undef|error|import)(?![0-9A-Za-z_])"
+        },
+        {
+          "name": "comment.line.moyu",
+          "match": "^[ \\t]*(//|#|--|;|%%|REM(?![0-9A-Za-z_])).*$"
+        },
+        {
+          "name": "comment.block.moyu",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.triple.moyu",
+          "begin": "(\"\"\"|''')",
+          "end": "\\1"
+        },
+        {
+          "name": "string.quoted.double.moyu",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.moyu",
+              "match": "\\\\."
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.moyu",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            {
+              "name": "constant.character.escape.moyu",
+              "match": "\\\\."
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.double.chinese.moyu",
+          "match": "“([^”\\n]*)(”|$)"
+        },
+        {
+          "name": "string.quoted.single.chinese.moyu",
+          "match": "「([^」\\n]*)(」|$)"
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.moyu",
+          "match": "(?<![0-9A-Za-z_])(0x[0-9a-fA-F]+|\\d+(\\.\\d+)?([eE][+-]?\\d+)?)(?![0-9A-Za-z_])"
+        }
+      ]
+    },
+    "prose": {
+      "patterns": [
+        {
+          "name": "entity.name.section.moyu",
+          "match": "^[ \\t]*(第.{0,12}[章节卷部回]|Chapter[ \\t]+\\d+|序章|楔子|尾声|番外|后记).*$"
+        },
+        {
+          "name": "string.link.moyu",
+          "match": "https?://[^\\s，。；！？]+"
+        },
+        {
+          "name": "punctuation.terminator.moyu",
+          "match": "[。！？!?]"
+        },
+        {
+          "name": "punctuation.separator.moyu",
+          "match": "[，、；：,;:…—]"
+        }
+      ]
+    },
+    "code": {
+      "patterns": [
+        {
+          "name": "keyword.control.moyu",
+          "match": "(?i)(?<![0-9A-Za-z_])(if|else|elif|for|while|do|return|break|continue|switch|case|default|try|except|catch|finally|throw|raise|with|async|await|yield|pass|new|delete|goto|then)(?![0-9A-Za-z_])"
+        },
+        {
+          "name": "storage.type.moyu",
+          "match": "(?i)(?<![0-9A-Za-z_])(int|float|double|char|bool|boolean|string|void|unsigned|signed|long|short|auto|var|let|const|static|size_t)(?![0-9A-Za-z_])"
+        },
+        {
+          "name": "keyword.other.moyu",
+          "match": "(?i)(?<![0-9A-Za-z_])(class|def|function|func|fn|struct|enum|interface|trait|implements|extends|import|from|require|export|module|package|namespace|using|typedef|public|private|protected|inline|virtual|override|template|self)(?![0-9A-Za-z_])"
+        },
+        {
+          "name": "constant.language.moyu",
+          "match": "(?i)(?<![0-9A-Za-z_])(true|false|null|none|nil|undefined|nan|inf)(?![0-9A-Za-z_])"
+        },
+        {
+          "name": "support.function.builtin.moyu",
+          "match": "(?i)(?<![0-9A-Za-z_])(print|printf|println|console|log|len|range|map|filter|reduce|open|read|write|main|init|process|run|start|stop|load|save|parse|format|split|join|sizeof|push_back|cout|cin|endl)(?![0-9A-Za-z_])"
+        },
+        {
+          "name": "meta.decorator.moyu",
+          "match": "^[ \\t]*@[A-Za-z_][A-Za-z0-9_]*"
+        },
+        {
+          "name": "entity.name.function.moyu",
+          "match": "[A-Za-z_\\u4e00-\\u9fa5][A-Za-z0-9_\\u4e00-\\u9fa5]*(?=[ \\t]*\\()"
+        },
+        {
+          "name": "variable.other.moyu",
+          "match": "(?<![0-9A-Za-z_])[a-zA-Z_][a-zA-Z0-9_]*(?![0-9A-Za-z_])"
+        }
+      ]
+    }
+  }
+}

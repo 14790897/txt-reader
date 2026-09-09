@@ -1,0 +1,151 @@
+{
+  "name": "moyu-reader",
+  "displayName": "摸鱼阅读器 (Moyu Reader)",
+  "description": "把 txt 伪装成代码样式：语法高亮、代码模板伪装、老板键一键还原。上班摸鱼神器。",
+  "version": "0.1.0",
+  "publisher": "moyu-dev",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Themes"
+  ],
+  "keywords": [
+    "txt",
+    "novel",
+    "moyu",
+    "摸鱼",
+    "小说"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onLanguage:moyu-txt",
+    "onCommand:moyu.disguise",
+    "onCommand:moyu.restore",
+    "onCommand:moyu.panic",
+    "onCommand:moyu.toggleStyle",
+    "onCommand:moyu.applyTheme"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "moyu-txt",
+        "aliases": [
+          "摸鱼文本",
+          "Moyu Text"
+        ],
+        "extensions": [
+          ".txt"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "moyu-txt",
+        "scopeName": "text.moyu",
+        "path": "./syntaxes/moyu.tmLanguage.json"
+      }
+    ],
+    "themes": [
+      {
+        "label": "Moyu Dark (摸鱼暗色)",
+        "uiTheme": "vs-dark",
+        "path": "./themes/moyu-dark.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "moyu.disguise",
+        "title": "伪装成代码",
+        "category": "摸鱼"
+      },
+      {
+        "command": "moyu.restore",
+        "title": "还原原文",
+        "category": "摸鱼"
+      },
+      {
+        "command": "moyu.panic",
+        "title": "紧急还原（老板键）",
+        "category": "摸鱼",
+        "icon": "$(eye-closed)"
+      },
+      {
+        "command": "moyu.toggleStyle",
+        "title": "切换 代码样式/纯文本",
+        "category": "摸鱼"
+      },
+      {
+        "command": "moyu.applyTheme",
+        "title": "启用摸鱼主题",
+        "category": "摸鱼"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "moyu.disguise",
+        "key": "ctrl+alt+d",
+        "when": "editorTextFocus && resourceExtname == .txt"
+      },
+      {
+        "command": "moyu.panic",
+        "key": "ctrl+alt+x",
+        "when": "editorTextFocus"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "moyu.disguise",
+          "when": "resourceExtname == .txt && !moyu.isDisguised",
+          "group": "moyu@1"
+        },
+        {
+          "command": "moyu.restore",
+          "when": "moyu.isDisguised",
+          "group": "moyu@2"
+        },
+        {
+          "command": "moyu.panic",
+          "when": "moyu.isDisguised",
+          "group": "moyu@3"
+        },
+        {
+          "command": "moyu.toggleStyle",
+          "when": "resourceExtname == .txt",
+          "group": "moyu@4"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "moyu.panic",
+          "when": "moyu.isDisguised",
+          "group": "navigation@1"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "摸鱼阅读器",
+      "properties": {
+        "moyu.template": {
+          "type": "string",
+          "enum": [
+            "python",
+            "cpp",
+            "js"
+          ],
+          "enumDescriptions": [
+            "Python 脚本模板",
+            "C++ 工程模板",
+            "Node.js 脚本模板"
+          ],
+          "default": "python",
+          "description": "「伪装成代码」时使用的代码模板"
+        }
+      }
+    }
+  }
+}
