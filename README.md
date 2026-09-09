@@ -10,6 +10,20 @@
 - **大纲伪装**：侧边栏大纲/面包屑里，章节显示为函数符号，模板里的 class/def 照常显示
 - **摸鱼主题**：附赠一套 Moyu Dark 暗色主题，txt 高亮更协调（同时也是一套正常可用的通用主题）
 
+## 效果截图
+
+**txt 代码样式高亮**（语言模式：摸鱼文本）
+
+![](https://github.com/14790897/moyu-reader/releases/download/_gh-imgup/5432e56e8fd3062c.png)
+
+**伪装成代码**（Ctrl+Alt+D，小说嵌入 Python 模板）
+
+![](https://github.com/14790897/moyu-reader/releases/download/_gh-imgup/3ff0282e0d2f26a8.png)
+
+**老板键还原**（Ctrl+Alt+X，原文逐字节恢复 + 切回 Plain Text）
+
+![](https://github.com/14790897/moyu-reader/releases/download/_gh-imgup/7cfafe9317c7af57.png)
+
 ## 安装
 
 ### 方式一：开发调试（推荐先试）
