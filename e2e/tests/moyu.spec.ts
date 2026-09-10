@@ -30,6 +30,10 @@ const NOVEL = `第一章 风起
 `;
 
 function findVSCodeCLI(): string {
+  // CI 等环境用 VSCODE_CLI 环境变量指定 code.cmd 路径
+  if (process.env.VSCODE_CLI && fs.existsSync(process.env.VSCODE_CLI)) {
+    return process.env.VSCODE_CLI;
+  }
   const candidates = [
     path.join(
       process.env.LOCALAPPDATA || '',

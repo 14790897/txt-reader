@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  unit:
+    name: 单元校验 (JSON / JS / 语法高亮 / 打包)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: 校验 JSON 文件合法性
+        run: |
+          node -e "
+            const fs = require('fs');
+            for (const f of ['package.json', 'syntaxes/moyu.tmLanguage.json', 'themes/moyu-dark.json', 'language-configuration.json']) {
+              JSON.parse(fs.readFileSync(f, 'utf8'));
+              console.log(f + ' OK');
+            }
+          "
+
+      - name: 校验 JS 语法
+        run: |
+          node --check extension.js
+          node --check templates.js
+
+      - name: 语法高亮分词单元测试 (vscode-textmate)
+        working-directory: e2e
+        run: |
+          npm ci --ignore-scripts
+          node test-grammar.js
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
+      - name: 打包 VSIX (校验扩展清单)
+        run: npx -y @vscode/vsce@latest package --skip-license

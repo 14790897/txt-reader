@@ -1,0 +1,60 @@
+name: E2E Tests
+
+on:
+  push:
+    paths:
+      - 'extension.js'
+      - 'templates.js'
+      - 'package.json'
+      - 'syntaxes/**'
+      - 'themes/**'
+      - 'language-configuration.json'
+      - 'e2e/**'
+      - '.github/workflows/e2e.yml'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    name: 真实 VS Code E2E (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: 下载并解压 VS Code (stable)
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://update.code.visualstudio.com/latest/win32-x64-archive/stable" -OutFile vscode.zip
+          Expand-Archive -Path vscode.zip -DestinationPath vscode
+          $exe = Get-ChildItem -Recurse -Path vscode -Filter "Code.exe" | Select-Object -First 1 -ExpandProperty FullName
+          Write-Host "VS Code found: $exe"
+          "VSCODE_CLI=$exe" >> $env:GITHUB_ENV
+
+      - name: 安装 E2E 依赖
+        working-directory: e2e
+        run: npm ci --ignore-scripts
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
+      - name: 运行 E2E 测试 (真实 VS Code 开发宿主)
+        working-directory: e2e
+        timeout-minutes: 20
+        run: npx playwright test --project=vscode --reporter=list
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
+      - name: 上传测试截图
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-screenshots
+          path: e2e/test-results/
+          if-no-files-found: ignore
+          retention-days: 7
