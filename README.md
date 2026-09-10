@@ -4,7 +4,7 @@
 
 ## 功能
 
-- **语法高亮伪装**：`.txt` 打开即自动启用代码配色 —— 章节标题像函数名、句号问号像运算符、数字像常量、英文像变量、对话像字符串
+- **语法高亮伪装**：`.txt` 打开即自动启用代码配色 —— 章节标题像函数名、句号问号像运算符、数字像常量、英文像变量、对话样式可配（字符串色 / 加粗 / 纯文本）
 - **阅读舒适排版**：txt 自动应用大字号 + 宽行距（默认 20 / 2.2，普通代码约 13 / 1.4），看小说不费眼；字号、行距、字体全部可配置
 - **代码模板伪装**：一键把全文包进 Python / C++ / Node.js 代码模板，从标题栏到滚动条一眼看去都是正经代码
 - **老板键**：`Ctrl+Alt+X` 瞬间还原原文、保存、并切回纯文本显示（阅读排版也会随语言切回密集的普通代码样式，毫无破绽）
@@ -21,9 +21,9 @@
 
 ![](https://github.com/14790897/moyu-reader/releases/download/_gh-imgup/3ff0282e0d2f26a8.png)
 
-**阅读舒适排版**（默认字号 20 / 行距 2.2，全部可配置）
+**阅读舒适排版**（默认字号 20 / 行距 2.2，对话加粗样式，全部可配置）
 
-![](https://github.com/14790897/moyu-reader/releases/download/_gh-imgup/3003dfe1f6f8cdd6.png)
+![](https://github.com/14790897/moyu-reader/releases/download/_gh-imgup/25416fafd5888f59.png)
 
 **老板键还原**（Ctrl+Alt+X，原文逐字节恢复 + 切回 Plain Text）
 
@@ -111,6 +111,7 @@ class TextProcessor:
 | `moyu.reading.fontSize` | `20` | 阅读字号（普通代码约 13） |
 | `moyu.reading.lineHeight` | `2.2` | 行距倍率（普通代码约 1.4 的密集行距） |
 | `moyu.reading.fontFamily` | `""` | 阅读字体，留空跟随全局字体 |
+| `moyu.highlight.dialogueStyle` | `string` | 对话引号样式：`string` 字符串色 / `bold` 加粗（与正文同色）/ `plain` 纯文本 |
 | `moyu.template` | `python` | 伪装模板：`python` / `cpp` / `js` |
 
 修改后立即生效（插件会实时同步到 `[moyu-txt]` 语言级设置，**不会**影响其他语言文件）。也可以手动执行命令「摸鱼: 应用阅读设置」。
