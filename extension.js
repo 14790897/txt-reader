@@ -289,7 +289,10 @@ function updateDialogueDecoration() {
 
   let opts;
   if (style === "string") {
-    opts = { color: "#CE9178" };
+    // 按明暗主题自适应: 暗色用 #CE9178, 亮色用 #A31515(经典字符串色)
+    const isLight =
+      vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Light;
+    opts = { color: isLight ? "#A31515" : "#CE9178" };
   } else if (style === "bold") {
     // 只加粗不设色: 与正文同色, 不刺眼
     opts = { fontWeight: "bold" };
@@ -407,6 +410,9 @@ function activate(context) {
       if (e.document.languageId === LANG_ID) {
         refreshDialogueDecorations();
       }
+    }),
+    vscode.window.onDidChangeActiveColorTheme(() => {
+      updateDialogueDecoration();
     }),
     vscode.languages.registerDocumentSymbolProvider(
       { language: LANG_ID },
