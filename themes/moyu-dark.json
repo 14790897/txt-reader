@@ -93,13 +93,6 @@
     {
       "scope": "string.link.moyu",
       "settings": { "foreground": "#3794FF", "fontStyle": "underline" }
-    },
-    {
-      "scope": [
-        "string.quoted.double.chinese.moyu",
-        "string.quoted.single.chinese.moyu"
-      ],
-      "settings": { "foreground": "#CE9178" }
     }
   ]
 }

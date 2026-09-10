@@ -2,7 +2,7 @@
   "name": "moyu-reader",
   "displayName": "摸鱼阅读器 (Moyu Reader)",
   "description": "把 txt 伪装成代码样式：语法高亮、代码模板伪装、老板键一键还原。上班摸鱼神器。",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "moyu-dev",
   "license": "MIT",
   "engines": {
@@ -174,6 +174,21 @@
           "type": "string",
           "default": "",
           "description": "摸鱼文本的字体（留空则跟随全局字体，可填如 'Microsoft YaHei' 或带 fallback 的字体列表）"
+        },
+        "moyu.highlight.dialogueStyle": {
+          "type": "string",
+          "enum": [
+            "string",
+            "bold",
+            "plain"
+          ],
+          "enumDescriptions": [
+            "字符串色（默认，橙红色，与其他语言字符串一致）",
+            "加粗（与正文同色，不刺眼）",
+            "纯文本（不特殊处理）"
+          ],
+          "default": "string",
+          "description": "中文对话引号（“”「」）的显示样式"
         }
       }
     }

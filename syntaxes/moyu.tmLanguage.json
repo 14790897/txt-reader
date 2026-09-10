@@ -57,11 +57,11 @@
           ]
         },
         {
-          "name": "string.quoted.double.chinese.moyu",
+          "name": "dialogue.quote.moyu",
           "match": "“([^”\\n]*)(”|$)"
         },
         {
-          "name": "string.quoted.single.chinese.moyu",
+          "name": "dialogue.quote.moyu",
           "match": "「([^」\\n]*)(」|$)"
         }
       ]

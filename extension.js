@@ -267,6 +267,61 @@ async function applyReadingSettings(showMessage = false) {
   return true;
 }
 
+/**
+ * 对话引号样式: 用 Decoration API 实现(运行时写入 textMateRules 在本版本 VS Code
+ * 不会生效, decorations 则实时刷新且不污染用户设置)
+ */
+let dialogueDecorationType = undefined;
+
+function updateDialogueDecoration() {
+  const conf = vscode.workspace.getConfiguration("moyu");
+  const style = conf.get("highlight.dialogueStyle", "string");
+
+  // 先用旧类型清空装饰, 再释放
+  const editor = vscode.window.activeTextEditor;
+  if (dialogueDecorationType) {
+    if (editor && editor.document.languageId === LANG_ID) {
+      editor.setDecorations(dialogueDecorationType, []);
+    }
+    dialogueDecorationType.dispose();
+    dialogueDecorationType = undefined;
+  }
+
+  let opts;
+  if (style === "string") {
+    opts = { color: "#CE9178" };
+  } else if (style === "bold") {
+    // 只加粗不设色: 与正文同色, 不刺眼
+    opts = { fontWeight: "bold" };
+  }
+  if (opts) {
+    dialogueDecorationType = vscode.window.createTextEditorDecorationType(opts);
+  }
+  refreshDialogueDecorations();
+}
+
+function refreshDialogueDecorations() {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor || editor.document.languageId !== LANG_ID) return;
+  if (!dialogueDecorationType) return;
+  const ranges = [];
+  const text = editor.document.getText();
+  const re = /“[^”\n]*”|「[^」\n]*」/g;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    ranges.push(
+      new vscode.Range(
+        editor.document.positionAt(m.index),
+        editor.document.positionAt(m.index + m[0].length)
+      )
+    );
+  }
+  console.log(
+    `[moyu] decoration refresh: ranges=${ranges.length} type=${JSON.stringify(dialogueDecorationType)}`
+  );
+  editor.setDecorations(dialogueDecorationType, ranges);
+}
+
 // ---------- 大纲伪装 ----------
 
 class MoyuDocumentSymbolProvider {
@@ -340,17 +395,31 @@ function activate(context) {
       if (e.affectsConfiguration("moyu.reading")) {
         applyReadingSettings().catch(() => {});
       }
+      if (e.affectsConfiguration("moyu.highlight")) {
+        updateDialogueDecoration();
+      }
+    }),
+    vscode.window.onDidChangeActiveTextEditor(() => {
+      refreshStatusBar();
+      refreshDialogueDecorations();
+    }),
+    vscode.workspace.onDidChangeTextDocument((e) => {
+      if (e.document.languageId === LANG_ID) {
+        refreshDialogueDecorations();
+      }
     }),
     vscode.languages.registerDocumentSymbolProvider(
       { language: LANG_ID },
       new MoyuDocumentSymbolProvider()
-    ),
-    vscode.window.onDidChangeActiveTextEditor(() => refreshStatusBar())
+    )
   );
 
   applyReadingSettings().catch((err) =>
     console.error("[moyu] applyReadingSettings failed:", err)
   );
+  updateDialogueDecoration();
+  // 编辑器初始化晚于 onLanguage 激活, 延迟重应用确保装饰生效
+  setTimeout(() => refreshDialogueDecorations(), 1000);
   refreshStatusBar();
 }
 
