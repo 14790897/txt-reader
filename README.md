@@ -5,8 +5,9 @@
 ## 功能
 
 - **语法高亮伪装**：`.txt` 打开即自动启用代码配色 —— 章节标题像函数名、句号问号像运算符、数字像常量、英文像变量、对话像字符串
+- **阅读舒适排版**：txt 自动应用大字号 + 宽行距（默认 20 / 2.2，普通代码约 13 / 1.4），看小说不费眼；字号、行距、字体全部可配置
 - **代码模板伪装**：一键把全文包进 Python / C++ / Node.js 代码模板，从标题栏到滚动条一眼看去都是正经代码
-- **老板键**：`Ctrl+Alt+X` 瞬间还原原文、保存、并切回纯文本显示
+- **老板键**：`Ctrl+Alt+X` 瞬间还原原文、保存、并切回纯文本显示（阅读排版也会随语言切回密集的普通代码样式，毫无破绽）
 - **大纲伪装**：侧边栏大纲/面包屑里，章节显示为函数符号，模板里的 class/def 照常显示
 - **摸鱼主题**：附赠一套 Moyu Dark 暗色主题，txt 高亮更协调（同时也是一套正常可用的通用主题）
 
@@ -19,6 +20,10 @@
 **伪装成代码**（Ctrl+Alt+D，小说嵌入 Python 模板）
 
 ![](https://github.com/14790897/moyu-reader/releases/download/_gh-imgup/3ff0282e0d2f26a8.png)
+
+**阅读舒适排版**（默认字号 20 / 行距 2.2，全部可配置）
+
+![](https://github.com/14790897/moyu-reader/releases/download/_gh-imgup/67ca961aae935c84.png)
 
 **老板键还原**（Ctrl+Alt+X，原文逐字节恢复 + 切回 Plain Text）
 
@@ -96,6 +101,22 @@ class TextProcessor:
 - 想加自己的模板：改 `templates.js` 里的 `TEMPLATES`
 - 想改高亮颜色：改 `themes/moyu-dark.json` 里的 `tokenColors`
 
+## 阅读设置（配置项）
+
+打开 `文件 → 首选项 → 设置`，搜索 `moyu` 即可看到全部配置项：
+
+| 配置项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `moyu.reading.enabled` | `true` | 是否自动为「摸鱼文本」应用舒适阅读排版（只影响 .txt） |
+| `moyu.reading.fontSize` | `20` | 阅读字号（普通代码约 13） |
+| `moyu.reading.lineHeight` | `2.2` | 行距倍率（普通代码约 1.4 的密集行距） |
+| `moyu.reading.fontFamily` | `""` | 阅读字体，留空跟随全局字体 |
+| `moyu.template` | `python` | 伪装模板：`python` / `cpp` / `js` |
+
+修改后立即生效（插件会实时同步到 `[moyu-txt]` 语言级设置，**不会**影响其他语言文件）。也可以手动执行命令「摸鱼: 应用阅读设置」。
+
+> 💡 老板键 `Ctrl+Alt+X` 会把语言切回纯文本，阅读排版随之消失、变回普通密集的代码样式——从字号到行距都看不出异常。
+
 ## E2E 测试
 
 仓库内 `e2e/` 目录包含完整的 Playwright E2E 测试（真实 VS Code + CDP 驱动）：
@@ -106,7 +127,9 @@ npm install   # 已安装过可跳过
 npx playwright test --project=vscode --reporter=list
 ```
 
-覆盖三条用例：txt 自动启用代码样式语言并分词高亮、Ctrl+Alt+D 伪装成代码并生成备份、Ctrl+Alt+X 老板键还原。测试自动使用临时 user-data-dir 和空 extensions-dir 隔离环境，结束后按命令行标记精确清理 VS Code 实例。`test-grammar.js` 是语法高亮的单元级回归测试，改 grammar 后先跑它。
+覆盖四条用例：txt 自动启用代码样式语言并分词高亮、Ctrl+Alt+D 伪装成代码并生成备份、moyu.\* 阅读配置自动应用到 `[moyu-txt]` 语言级设置、Ctrl+Alt+X 老板键还原。测试自动使用临时 user-data-dir 和空 extensions-dir 隔离环境，结束后按命令行标记精确清理 VS Code 实例。`test-grammar.js` 是语法高亮的单元级回归测试，改 grammar 后先跑它。
+
+> ⚠️ 如果 VS Code 有排队中的自动更新，更新安装器会占住 `vscode-updating` 互斥量，导致开发宿主无法启动（报 "Code is currently being updated"）。可以先跑 `e2e/clear-pending-update.ps1` 把排队中的更新包移出安装目录再测。
 
 ## FAQ
 
