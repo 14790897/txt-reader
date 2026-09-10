@@ -181,7 +181,11 @@ test.describe('摸鱼阅读器 E2E', () => {
     fs.writeFileSync(
       path.join(userDir, 'settings.json'),
       JSON.stringify(
-        { 'moyu.reading.fontSize': 24, 'moyu.reading.lineHeight': 2.4 },
+        {
+          'moyu.reading.fontSize': 24,
+          'moyu.reading.lineHeight': 2.4,
+          'moyu.highlight.dialogueStyle': 'bold',
+        },
         null,
         2,
       ),
@@ -216,6 +220,13 @@ test.describe('摸鱼阅读器 E2E', () => {
     browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
     page = await waitForWorkbenchPage(browser);
     await page.waitForLoadState('domcontentloaded');
+    // 扩展宿主 console 会转发到 workbench 控制台, 收集 [moyu] 日志辅助诊断
+    page.on('console', (msg) => {
+      const t = msg.text();
+      if (t.includes('[moyu]')) {
+        console.log(`[EXT] ${t.slice(0, 200)}`);
+      }
+    });
     await expect(page.locator('.monaco-workbench')).toBeVisible({
       timeout: 60_000,
     });
@@ -332,7 +343,44 @@ test.describe('摸鱼阅读器 E2E', () => {
     ).toContain('第一章');
   });
 
-  test('3. Ctrl+Alt+D 伪装成代码并生成备份', async () => {
+  test('3. 对话引号样式: 加粗选项生效(与正文同色不刺眼)', async () => {
+    // 渲染层: 对话装饰 = 加粗且颜色与普通正文一致(不是刺眼的字符串红)
+    // 装饰会嵌套渲染为多层 span, 取所有含对话文本的 span 中满足条件者
+    const mainEditor = page
+      .locator('.monaco-editor')
+      .filter({ hasText: '第一章' })
+      .first();
+    await expect(mainEditor.locator('.view-line').first()).toBeVisible({
+      timeout: 10_000,
+    });
+    const renderedSpans = await mainEditor
+      .locator('.view-line span')
+      .evaluateAll((els) =>
+        els
+          .filter((e) => e.getClientRects().length > 0)
+          .map((e) => ({
+            text: (e.textContent || '').slice(0, 16),
+            cls: e.className,
+            weight: getComputedStyle(e).fontWeight,
+            color: getComputedStyle(e).color,
+          })),
+      );
+    const dialogue = renderedSpans.filter((s) =>
+      s.text.includes('今天也要好好摸鱼'),
+    );
+    const prose = renderedSpans.filter((s) => s.text.includes('他对自己说'));
+    const boldSameColor = dialogue.some(
+      (s) =>
+        parseFloat(s.weight) >= 600 &&
+        prose.some((p) => p.color === s.color),
+    );
+    expect(
+      boldSameColor,
+      `对话装饰应加粗且与正文同色; 实际 renderedSpans=${JSON.stringify(renderedSpans)}`,
+    ).toBe(true);
+  });
+
+  test('4. Ctrl+Alt+D 伪装成代码并生成备份', async () => {
     // 聚焦编辑器后按快捷键
     await page.locator('.monaco-editor .view-lines').first().click();
     await page.keyboard.press('Control+Alt+D');
@@ -364,7 +412,7 @@ test.describe('摸鱼阅读器 E2E', () => {
     await page.screenshot({ path: 'test-results/02-disguised.png' });
   });
 
-  test('4. Ctrl+Alt+X 老板键：还原原文+保存+切纯文本', async () => {
+  test('5. Ctrl+Alt+X 老板键：还原原文+保存+切纯文本', async () => {
     await page.locator('.monaco-editor .view-lines').first().click();
     await page.keyboard.press('Control+Alt+X');
 
