@@ -2,7 +2,7 @@
   "name": "moyu-reader",
   "displayName": "摸鱼阅读器 (Moyu Reader)",
   "description": "把 txt 伪装成代码样式：语法高亮、代码模板伪装、老板键一键还原。上班摸鱼神器。",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "moyu-dev",
   "license": "MIT",
   "engines": {
@@ -26,7 +26,8 @@
     "onCommand:moyu.restore",
     "onCommand:moyu.panic",
     "onCommand:moyu.toggleStyle",
-    "onCommand:moyu.applyTheme"
+    "onCommand:moyu.applyTheme",
+    "onCommand:moyu.applyReadingSettings"
   ],
   "contributes": {
     "languages": [
@@ -81,6 +82,11 @@
       {
         "command": "moyu.applyTheme",
         "title": "启用摸鱼主题",
+        "category": "摸鱼"
+      },
+      {
+        "command": "moyu.applyReadingSettings",
+        "title": "应用阅读设置",
         "category": "摸鱼"
       }
     ],
@@ -144,6 +150,30 @@
           ],
           "default": "python",
           "description": "「伪装成代码」时使用的代码模板"
+        },
+        "moyu.reading.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "自动为「摸鱼文本」应用舒适的阅读排版（字号/行距），只影响 .txt 文件，老板键还原后会变回普通密集排版"
+        },
+        "moyu.reading.fontSize": {
+          "type": "number",
+          "default": 20,
+          "minimum": 12,
+          "maximum": 40,
+          "description": "摸鱼文本的阅读字号（默认 20；普通代码编辑器约 13）"
+        },
+        "moyu.reading.lineHeight": {
+          "type": "number",
+          "default": 2.2,
+          "minimum": 1,
+          "maximum": 4,
+          "description": "摸鱼文本的行距倍率（默认 2.2；普通代码约 1.4 的密集行距）"
+        },
+        "moyu.reading.fontFamily": {
+          "type": "string",
+          "default": "",
+          "description": "摸鱼文本的字体（留空则跟随全局字体，可填如 'Microsoft YaHei' 或带 fallback 的字体列表）"
         }
       }
     }

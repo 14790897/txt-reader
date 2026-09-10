@@ -219,6 +219,54 @@ async function applyTheme() {
   vscode.window.showInformationMessage(`已切换到「${THEME_LABEL}」主题`);
 }
 
+/** 把 moyu.reading.* 同步为 [moyu-txt] 语言级编辑器设置(只影响 txt, 不碰其他语言) */
+async function applyReadingSettings(showMessage = false) {
+  const conf = vscode.workspace.getConfiguration("moyu");
+  const enabled = conf.get("reading.enabled", true);
+  if (!enabled) {
+    if (showMessage) {
+      vscode.window.showInformationMessage(
+        "阅读设置未启用（moyu.reading.enabled = false）"
+      );
+    }
+    return false;
+  }
+
+  const fontSize = conf.get("reading.fontSize", 20);
+  const lineHeight = conf.get("reading.lineHeight", 2.2);
+  const fontFamily = conf.get("reading.fontFamily", "");
+
+  const editorConf = vscode.workspace.getConfiguration("editor", {
+    languageId: LANG_ID,
+  });
+  // 第 4 个参数 overrideInLanguage=true: 写入 [moyu-txt] 语言级覆盖, 而不是全局设置
+  await editorConf.update(
+    "fontSize",
+    fontSize,
+    vscode.ConfigurationTarget.Global,
+    true
+  );
+  await editorConf.update(
+    "lineHeight",
+    lineHeight,
+    vscode.ConfigurationTarget.Global,
+    true
+  );
+  await editorConf.update(
+    "fontFamily",
+    fontFamily || undefined,
+    vscode.ConfigurationTarget.Global,
+    true
+  );
+
+  if (showMessage) {
+    vscode.window.showInformationMessage(
+      `已应用阅读设置：字号 ${fontSize}、行距 ${lineHeight}${fontFamily ? `、字体 ${fontFamily}` : ""}`
+    );
+  }
+  return true;
+}
+
 // ---------- 大纲伪装 ----------
 
 class MoyuDocumentSymbolProvider {
@@ -285,6 +333,14 @@ function activate(context) {
     vscode.commands.registerCommand("moyu.panic", panic),
     vscode.commands.registerCommand("moyu.toggleStyle", toggleStyle),
     vscode.commands.registerCommand("moyu.applyTheme", applyTheme),
+    vscode.commands.registerCommand("moyu.applyReadingSettings", () =>
+      applyReadingSettings(true)
+    ),
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("moyu.reading")) {
+        applyReadingSettings().catch(() => {});
+      }
+    }),
     vscode.languages.registerDocumentSymbolProvider(
       { language: LANG_ID },
       new MoyuDocumentSymbolProvider()
@@ -292,6 +348,9 @@ function activate(context) {
     vscode.window.onDidChangeActiveTextEditor(() => refreshStatusBar())
   );
 
+  applyReadingSettings().catch((err) =>
+    console.error("[moyu] applyReadingSettings failed:", err)
+  );
   refreshStatusBar();
 }
 
