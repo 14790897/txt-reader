@@ -158,6 +158,19 @@ test.describe('摸鱼阅读器 E2E', () => {
       'backups',
     );
 
+    // 预置阅读配置: 验证插件把 moyu.* 配置同步为 [moyu-txt] 语言级编辑器设置
+    const userDir = path.join(userDataDir, 'User');
+    fs.mkdirSync(userDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(userDir, 'settings.json'),
+      JSON.stringify(
+        { 'moyu.reading.fontSize': 24, 'moyu.reading.lineHeight': 2.4 },
+        null,
+        2,
+      ),
+      'utf8',
+    );
+
     const args = [
       `--remote-debugging-port=${CDP_PORT}`,
       '--no-sandbox',
@@ -277,7 +290,43 @@ test.describe('摸鱼阅读器 E2E', () => {
     await page.screenshot({ path: 'test-results/02-disguised.png' });
   });
 
-  test('3. Ctrl+Alt+X 老板键：还原原文+保存+切纯文本', async () => {
+  test('3. 阅读设置: moyu.* 配置自动应用到 moyu-txt 语言', async () => {
+    const settingsPath = path.join(userDataDir, 'User', 'settings.json');
+
+    // 插件激活时应把 moyu.reading.* 同步为 [moyu-txt] 语言级 editor 设置
+    await expect
+      .poll(
+        () => {
+          try {
+            const s = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+            const lang = s['[moyu-txt]'];
+            return lang
+              ? {
+                  fontSize: lang['editor.fontSize'],
+                  lineHeight: lang['editor.lineHeight'],
+                }
+              : null;
+          } catch {
+            return null;
+          }
+        },
+        { timeout: 20_000 },
+      )
+      .toEqual({ fontSize: 24, lineHeight: 2.4 });
+
+    // 渲染层验证: 实际行高 ≈ 24 * 2.4 = 57.6px(默认密集行距只有 ~18px)
+    const firstLine = page.locator('.monaco-editor .view-line').first();
+    await expect(firstLine).toBeVisible({ timeout: 10_000 });
+    const lineHeightPx = await firstLine.evaluate((el) => {
+      const h = parseFloat(getComputedStyle(el).lineHeight);
+      return Number.isFinite(h) ? h : 0;
+    });
+    expect(lineHeightPx, '行高应明显大于默认密集行距').toBeGreaterThan(50);
+
+    await page.screenshot({ path: 'test-results/04-reading-settings.png' });
+  });
+
+  test('4. Ctrl+Alt+X 老板键：还原原文+保存+切纯文本', async () => {
     await page.locator('.monaco-editor .view-lines').first().click();
     await page.keyboard.press('Control+Alt+X');
 
