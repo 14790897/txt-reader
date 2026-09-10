@@ -219,6 +219,39 @@ async function applyTheme() {
   vscode.window.showInformationMessage(`已切换到「${THEME_LABEL}」主题`);
 }
 
+/** 可视化选择对话引号样式: 下拉选择, 选完立即生效 */
+async function pickDialogueStyle() {
+  const conf = vscode.workspace.getConfiguration("moyu");
+  const current = conf.get("highlight.dialogueStyle", "string");
+  const options = [
+    {
+      label: "橙红色（默认）",
+      description: "string · 与其他语言字符串一致",
+      value: "string",
+    },
+    {
+      label: "加粗（与正文同色）",
+      description: "bold · 不刺眼",
+      value: "bold",
+    },
+    {
+      label: "纯文本",
+      description: "plain · 不特殊处理",
+      value: "plain",
+    },
+  ];
+  const picked = await vscode.window.showQuickPick(options, {
+    placeHolder: `选择对话引号（“”「」）的显示样式（当前: ${current}）`,
+  });
+  if (!picked) return;
+  await conf.update(
+    "highlight.dialogueStyle",
+    picked.value,
+    vscode.ConfigurationTarget.Global
+  );
+  vscode.window.showInformationMessage(`对话样式已切换为「${picked.label}」`);
+}
+
 /** 把 moyu.reading.* 同步为 [moyu-txt] 语言级编辑器设置(只影响 txt, 不碰其他语言) */
 async function applyReadingSettings(showMessage = false) {
   const conf = vscode.workspace.getConfiguration("moyu");
@@ -319,9 +352,6 @@ function refreshDialogueDecorations() {
       )
     );
   }
-  console.log(
-    `[moyu] decoration refresh: ranges=${ranges.length} type=${JSON.stringify(dialogueDecorationType)}`
-  );
   editor.setDecorations(dialogueDecorationType, ranges);
 }
 
@@ -394,6 +424,7 @@ function activate(context) {
     vscode.commands.registerCommand("moyu.applyReadingSettings", () =>
       applyReadingSettings(true)
     ),
+    vscode.commands.registerCommand("moyu.pickDialogueStyle", pickDialogueStyle),
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration("moyu.reading")) {
         applyReadingSettings().catch(() => {});

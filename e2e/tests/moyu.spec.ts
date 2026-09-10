@@ -384,7 +384,85 @@ test.describe('摸鱼阅读器 E2E', () => {
     ).toBe(true);
   });
 
-  test('4. Ctrl+Alt+D 伪装成代码并生成备份', async () => {
+  test('4. 可视化切换对话样式 (右键菜单 + 下拉选择)', async () => {
+    const settingsPath = path.join(userDataDir, 'User', 'settings.json');
+    const readDialogueSetting = () => {
+      try {
+        return JSON.parse(fs.readFileSync(settingsPath, 'utf8'))[
+          'moyu.highlight.dialogueStyle'
+        ];
+      } catch {
+        return null;
+      }
+    };
+    const mainEditor = page
+      .locator('.monaco-editor')
+      .filter({ hasText: '第一章' })
+      .first();
+    const spanStyles = () =>
+      mainEditor.locator('.view-line span').evaluateAll((els) =>
+        els
+          .filter((e) => e.getClientRects().length > 0)
+          .map((e) => ({
+            text: e.textContent || '',
+            weight: getComputedStyle(e).fontWeight,
+            color: getComputedStyle(e).color,
+          })),
+      );
+    const dialogueState = async () => {
+      const spans = await spanStyles();
+      const d = spans.filter((s) => s.text.includes('今天也要好好摸鱼'));
+      const p = spans.filter((s) => s.text.includes('他对自己说'));
+      if (!d.length || !p.length) return null;
+      const colored = d.some((s) => !p.some((x) => x.color === s.color));
+      if (colored) return 'colored';
+      const boldSame = d.some(
+        (s) => parseFloat(s.weight) >= 600 && p.some((x) => x.color === s.color),
+      );
+      return boldSame ? 'bold-same' : 'other';
+    };
+    const openPicker = async () => {
+      // 命令面板输入 dialogue 触发(标题含英文关键词, 规避中文 IME 输入)
+      await page.keyboard.press('Control+Shift+P');
+      const entry = page
+        .locator('.quick-input-widget .monaco-list-row')
+        .filter({ hasText: '切换对话引号样式' })
+        .first();
+      // 先输入关键词过滤(面板初始列表是"最近使用", 不含本命令), 再回车执行
+      await page.keyboard.type('dialogue');
+      await expect(entry).toBeVisible({ timeout: 10_000 });
+      await page.keyboard.press('Enter');
+      await expect(page.getByPlaceholder(/选择对话引号/)).toBeVisible({
+        timeout: 10_000,
+      });
+    };
+    const pickOption = async (label: string) => {
+      const row = page
+        .locator('.quick-input-widget .monaco-list-row')
+        .filter({ hasText: label })
+        .first();
+      await expect(row).toBeVisible({ timeout: 5_000 });
+      await row.click();
+    };
+
+    // 命令面板 -> 切换对话引号样式 -> 选「橙红色」
+    await openPicker();
+    await pickOption('橙红色');
+    await expect.poll(readDialogueSetting, { timeout: 15_000 }).toBe('string');
+    await expect
+      .poll(dialogueState, { timeout: 15_000 })
+      .toBe('colored');
+
+    // 再切换为「加粗」: 恢复加粗且与正文同色
+    await openPicker();
+    await pickOption('加粗');
+    await expect.poll(readDialogueSetting, { timeout: 15_000 }).toBe('bold');
+    await expect
+      .poll(dialogueState, { timeout: 15_000 })
+      .toBe('bold-same');
+  });
+
+  test('5. Ctrl+Alt+D 伪装成代码并生成备份', async () => {
     // 聚焦编辑器后按快捷键
     await page.locator('.monaco-editor .view-lines').first().click();
     await page.keyboard.press('Control+Alt+D');
@@ -416,7 +494,7 @@ test.describe('摸鱼阅读器 E2E', () => {
     await page.screenshot({ path: 'test-results/02-disguised.png' });
   });
 
-  test('5. Ctrl+Alt+X 老板键：还原原文+保存+切纯文本', async () => {
+  test('6. Ctrl+Alt+X 老板键：还原原文+保存+切纯文本', async () => {
     await page.locator('.monaco-editor .view-lines').first().click();
     await page.keyboard.press('Control+Alt+X');
 
