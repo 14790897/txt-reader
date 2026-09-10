@@ -121,6 +121,20 @@ function killByCmdlineMarker(marker: string): void {
   } catch {}
 }
 
+/** 统计命令行包含 marker 的 Code.exe 数量 */
+function countByCmdlineMarker(marker: string): number {
+  if (process.platform !== 'win32') return 0;
+  try {
+    const out = execSync(
+      `powershell -NoProfile -Command "(Get-CimInstance Win32_Process -Filter \\"Name='Code.exe'\\" | Where-Object { $_.CommandLine -like '*${marker}*' }).Count"`,
+      { encoding: 'utf8', timeout: 30_000 },
+    );
+    return parseInt(out.trim(), 10) || 0;
+  } catch {
+    return 0;
+  }
+}
+
 test.describe('摸鱼阅读器 E2E', () => {
   let vscodeProcess: ChildProcess | null = null;
   let browser: Browser | null = null;
@@ -143,8 +157,11 @@ test.describe('摸鱼阅读器 E2E', () => {
     const extensionsDir = path.join(tmpDir, 'extensions');
     fs.mkdirSync(extensionsDir, { recursive: true });
 
-    // 清理历史测试泄漏的 VS Code 实例
+    // 清理历史测试泄漏的 VS Code 实例, 并确认清零(防止 CDP 串到旧窗口)
     killByCmdlineMarker('moyu-e2e-');
+    await expect
+      .poll(() => countByCmdlineMarker('moyu-e2e-'), { timeout: 15_000 })
+      .toBe(0);
 
     const novelDir = fs.mkdtempSync(path.join(os.tmpdir(), 'moyu-novel-'));
     novelPath = path.join(novelDir, 'novel.txt');
@@ -258,7 +275,64 @@ test.describe('摸鱼阅读器 E2E', () => {
     await page.screenshot({ path: 'test-results/01-txt-highlighted.png' });
   });
 
-  test('2. Ctrl+Alt+D 伪装成代码并生成备份', async () => {
+  test('2. 阅读设置: moyu.* 配置自动应用到 moyu-txt 语言', async () => {
+    const settingsPath = path.join(userDataDir, 'User', 'settings.json');
+
+    // 插件激活时应把 moyu.reading.* 同步为 [moyu-txt] 语言级 editor 设置
+    await expect
+      .poll(
+        () => {
+          try {
+            const s = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+            const lang = s['[moyu-txt]'];
+            return lang
+              ? {
+                  fontSize: lang['editor.fontSize'],
+                  lineHeight: lang['editor.lineHeight'],
+                }
+              : null;
+          } catch {
+            return null;
+          }
+        },
+        { timeout: 20_000 },
+      )
+      .toEqual({ fontSize: 24, lineHeight: 2.4 });
+
+    // 渲染层验证: 实际行高 ≈ 24 * 2.4 = 57.6px(默认密集行距只有 ~18px)
+    // 锚定到包含小说原文的那个 monaco 编辑器(避免命中 Chat 输入框等其他编辑器)
+    const mainEditor = page
+      .locator('.monaco-editor')
+      .filter({ hasText: '第一章' })
+      .first();
+    const firstLine = mainEditor.locator('.view-line').first();
+    await expect(firstLine).toBeVisible({ timeout: 10_000 });
+    // 断言此时编辑器仍显示小说原文(伪装不应在阅读设置测试前发生)
+    const firstText = await firstLine.textContent();
+    console.log(
+      `[CONTENT ${new Date().toISOString().slice(11, 23)}] 首行内容: ${firstText}`,
+      `backup数: ${listBackups(backupsDir).length}`,
+    );
+    expect(firstText, '阅读设置测试时编辑器应显示小说原文').toContain(
+      '第一章',
+    );
+    const lineHeightPx = await firstLine.evaluate((el) => {
+      const h = parseFloat(getComputedStyle(el).lineHeight);
+      return Number.isFinite(h) ? h : 0;
+    });
+    expect(lineHeightPx, '行高应明显大于默认密集行距').toBeGreaterThan(50);
+
+    // 元素级截图: 保证截图内容与上面断言的是同一个编辑器
+    await mainEditor.screenshot({
+      path: 'test-results/04-reading-settings.png',
+    });
+    expect(
+      await firstLine.textContent(),
+      '截图后编辑器内容不应变化',
+    ).toContain('第一章');
+  });
+
+  test('3. Ctrl+Alt+D 伪装成代码并生成备份', async () => {
     // 聚焦编辑器后按快捷键
     await page.locator('.monaco-editor .view-lines').first().click();
     await page.keyboard.press('Control+Alt+D');
@@ -288,42 +362,6 @@ test.describe('摸鱼阅读器 E2E', () => {
     ).toBe(NOVEL);
 
     await page.screenshot({ path: 'test-results/02-disguised.png' });
-  });
-
-  test('3. 阅读设置: moyu.* 配置自动应用到 moyu-txt 语言', async () => {
-    const settingsPath = path.join(userDataDir, 'User', 'settings.json');
-
-    // 插件激活时应把 moyu.reading.* 同步为 [moyu-txt] 语言级 editor 设置
-    await expect
-      .poll(
-        () => {
-          try {
-            const s = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-            const lang = s['[moyu-txt]'];
-            return lang
-              ? {
-                  fontSize: lang['editor.fontSize'],
-                  lineHeight: lang['editor.lineHeight'],
-                }
-              : null;
-          } catch {
-            return null;
-          }
-        },
-        { timeout: 20_000 },
-      )
-      .toEqual({ fontSize: 24, lineHeight: 2.4 });
-
-    // 渲染层验证: 实际行高 ≈ 24 * 2.4 = 57.6px(默认密集行距只有 ~18px)
-    const firstLine = page.locator('.monaco-editor .view-line').first();
-    await expect(firstLine).toBeVisible({ timeout: 10_000 });
-    const lineHeightPx = await firstLine.evaluate((el) => {
-      const h = parseFloat(getComputedStyle(el).lineHeight);
-      return Number.isFinite(h) ? h : 0;
-    });
-    expect(lineHeightPx, '行高应明显大于默认密集行距').toBeGreaterThan(50);
-
-    await page.screenshot({ path: 'test-results/04-reading-settings.png' });
   });
 
   test('4. Ctrl+Alt+X 老板键：还原原文+保存+切纯文本', async () => {
