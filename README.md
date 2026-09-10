@@ -23,7 +23,7 @@
 
 **阅读舒适排版**（默认字号 20 / 行距 2.2，全部可配置）
 
-![](https://github.com/14790897/moyu-reader/releases/download/_gh-imgup/67ca961aae935c84.png)
+![](https://github.com/14790897/moyu-reader/releases/download/_gh-imgup/3003dfe1f6f8cdd6.png)
 
 **老板键还原**（Ctrl+Alt+X，原文逐字节恢复 + 切回 Plain Text）
 
