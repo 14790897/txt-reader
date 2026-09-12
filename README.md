@@ -1,4 +1,4 @@
-# 📖 TXT 阅读器 (TXT Reader)
+# 📖 TXT 美化阅读器 (TXT Beautify Reader)
 
 把 txt 阅读变得像代码一样舒适：代码风格语法高亮、大字号宽行距排版、按说话人对话配色，支持 AI 识别说话人，一键伪装与还原。
 
@@ -34,7 +34,7 @@
 
 ### 方式一：扩展商店
 
-VS Code 扩展面板（Ctrl+Shift+X）搜索「TXT 阅读器」即可安装。
+VS Code 扩展面板（Ctrl+Shift+X）搜索「TXT 美化阅读器」或「txt-beautifier」即可安装。
 
 ### 方式二：开发调试
 
