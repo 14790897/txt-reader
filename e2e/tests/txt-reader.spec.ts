@@ -822,7 +822,83 @@ test.describe('TXT 阅读器 E2E', () => {
       .toContain('rgb(78, 201, 176)');
   });
 
-  test('11. Ctrl+Alt+D 伪装成代码并生成备份', async () => {
+  test('11. AI 识别说话人: 真实 DeepSeek API 集成验证', async () => {
+    test.skip(
+      !process.env.DEEPSEEK_API_KEY,
+      '需要 DEEPSEEK_API_KEY 环境变量(本地真实 API 集成验证, CI 跳过)',
+    );
+    const settingsPath = path.join(userDataDir, 'User', 'settings.json');
+    const s = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    s['txtreader.dialogue.ai.provider'] = 'deepseek';
+    s['txtreader.dialogue.ai.baseUrl'] = ''; // 空 = 官方预设 https://api.deepseek.com
+    s['txtreader.dialogue.ai.apiKey'] = process.env.DEEPSEEK_API_KEY;
+    fs.writeFileSync(settingsPath, JSON.stringify(s, null, 2), 'utf8');
+    await page.waitForTimeout(2000);
+
+    await page.keyboard.press('Control+Shift+P');
+    await page.keyboard.type('Analyze');
+    const entry = page
+      .locator('.quick-input-widget .monaco-list-row')
+      .filter({ hasText: 'AI 识别说话人' })
+      .first();
+    await expect(entry).toBeVisible({ timeout: 10_000 });
+    await entry.click();
+
+    // 真实 API 往返需要时间: 等待对话出现调色板配色(深色主题下)
+    const DARK_PALETTE_RGB = [
+      'rgb(78, 201, 176)',
+      'rgb(220, 220, 170)',
+      'rgb(86, 156, 214)',
+      'rgb(197, 134, 192)',
+      'rgb(181, 206, 168)',
+      'rgb(215, 186, 125)',
+      'rgb(156, 220, 254)',
+      'rgb(244, 135, 113)',
+    ];
+    await expect
+      .poll(
+        async () => {
+          const colors = await renderedSpanColors(page, '今天也要好好读书');
+          return colors.some((c) => DARK_PALETTE_RGB.includes(c));
+        },
+        { timeout: 60_000 },
+      )
+      .toBe(true);
+    await expect
+      .poll(
+        async () => {
+          const colors = await renderedSpanColors(page, '来了');
+          return colors.some((c) => DARK_PALETTE_RGB.includes(c));
+        },
+        { timeout: 30_000 },
+      )
+      .toBe(true);
+
+    // 分析结果已缓存
+    const speakersDir = path.join(
+      userDataDir,
+      'User',
+      'globalStorage',
+      'take-a-rest-dev.txt-beautifier',
+      'speakers',
+    );
+    await expect
+      .poll(
+        () => {
+          try {
+            return fs
+              .readdirSync(speakersDir)
+              .filter((f) => f.endsWith('.json')).length;
+          } catch {
+            return 0;
+          }
+        },
+        { timeout: 15_000 },
+      )
+      .toBeGreaterThanOrEqual(1);
+  });
+
+  test('12. Ctrl+Alt+D 伪装成代码并生成备份', async () => {
     // 聚焦编辑器后按快捷键
     await page.locator('.monaco-editor .view-lines').first().click();
     await page.keyboard.press('Control+Alt+D');
@@ -854,7 +930,7 @@ test.describe('TXT 阅读器 E2E', () => {
     await page.screenshot({ path: 'test-results/02-disguised.png' });
   });
 
-  test('12. Ctrl+Alt+X 老板键：还原原文+保存+切纯文本', async () => {
+  test('13. Ctrl+Alt+X 老板键：还原原文+保存+切纯文本', async () => {
     await page.locator('.monaco-editor .view-lines').first().click();
     await page.keyboard.press('Control+Alt+X');
 
