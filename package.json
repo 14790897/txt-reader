@@ -2,7 +2,7 @@
   "name": "moyu-reader",
   "displayName": "摸鱼阅读器 (Moyu Reader)",
   "description": "把 txt 伪装成代码样式：语法高亮、代码模板伪装、老板键一键还原。上班摸鱼神器。",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "publisher": "take-a-rest-dev",
   "icon": "icon.png",
   "repository": {

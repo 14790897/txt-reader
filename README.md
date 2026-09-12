@@ -133,6 +133,13 @@ npx playwright test --project=vscode --reporter=list
 
 > ⚠️ 如果 VS Code 有排队中的自动更新，更新安装器会占住 `vscode-updating` 互斥量，导致开发宿主无法启动（报 "Code is currently being updated"）。可以先跑 `e2e/clear-pending-update.ps1` 把排队中的更新包移出安装目录再测。
 
+## 发版流程（自动发布）
+
+1. 改代码，把 `package.json` 的 `version` 改成新版本号（如 `0.4.3`），提交推送
+2. 打 tag 并推送：`git tag v0.4.3 && git push origin v0.4.3`
+3. GitHub Actions 自动完成：版本校验 → 打包验证 → 发布 VS Code 市场 → 创建 GitHub Release（附 VSIX）
+4. 也可在 Actions → Publish Extension 手动触发
+
 ## FAQ
 
 - **伪装后保存了，还能还原吗？** 能。备份在扩展私有目录里，只要不重装插件就能还原。
