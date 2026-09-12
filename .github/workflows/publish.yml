@@ -44,6 +44,6 @@ jobs:
       - name: 创建 GitHub Release (附 VSIX)
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          gh release create "$GITHUB_REF_NAME" moyu-reader-*.vsix --generate-notes
+          gh release create "$GITHUB_REF_NAME" *.vsix --generate-notes
         env:
           GH_TOKEN: ${{ github.token }}
