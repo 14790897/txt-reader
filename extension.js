@@ -6,6 +6,7 @@ const path = require("path");
 const crypto = require("crypto");
 
 const { wrap } = require("./templates");
+const speakers = require("./speakers");
 
 const LANG_ID = "moyu-txt";
 const DISGUISED_CTX = "moyu.isDisguised";
@@ -301,10 +302,45 @@ async function applyReadingSettings(showMessage = false) {
 }
 
 /**
- * 对话引号样式: 用 Decoration API 实现(运行时写入 textMateRules 在本版本 VS Code
+ * 对话装饰: Decoration API 实现(运行时写入 textMateRules 在本版本 VS Code
  * 不会生效, decorations 则实时刷新且不污染用户设置)
+ * - dialogueDecorationType: 基础样式(string 色 / bold / plain)
+ * - speakerDecorationTypes: 按说话人/循环的配色, 每色一个 DecorationType
  */
 let dialogueDecorationType = undefined;
+const speakerDecorationTypes = []; // { type, color }
+let speakerAssignments = []; // 每段对话引号的配色索引, null = 未分配
+
+const SPEAKER_PALETTE = [
+  "#4EC9B0", "#DCDCAA", "#569CD6", "#C586C0",
+  "#B5CEA8", "#D7BA7D", "#9CDCFE", "#F48771",
+];
+
+function dialogueStyleIsBold() {
+  return (
+    vscode.workspace.getConfiguration("moyu").get("highlight.dialogueStyle", "string") ===
+    "bold"
+  );
+}
+
+function disposeSpeakerDecorations() {
+  for (const d of speakerDecorationTypes) d.type.dispose();
+  speakerDecorationTypes.length = 0;
+  speakerAssignments = [];
+}
+
+function rebuildSpeakerDecorationTypes() {
+  disposeSpeakerDecorations();
+  const bold = dialogueStyleIsBold();
+  for (const color of SPEAKER_PALETTE) {
+    const opts = { color };
+    if (bold) opts.fontWeight = "bold";
+    speakerDecorationTypes.push({
+      type: vscode.window.createTextEditorDecorationType(opts),
+      color,
+    });
+  }
+}
 
 function updateDialogueDecoration() {
   const conf = vscode.workspace.getConfiguration("moyu");
@@ -333,15 +369,16 @@ function updateDialogueDecoration() {
   if (opts) {
     dialogueDecorationType = vscode.window.createTextEditorDecorationType(opts);
   }
+  rebuildSpeakerDecorationTypes();
   refreshDialogueDecorations();
 }
 
-function refreshDialogueDecorations() {
+/** 收集当前文档的所有对话引号范围(按出现顺序) */
+function collectDialogueRanges() {
   const editor = vscode.window.activeTextEditor;
-  if (!editor || editor.document.languageId !== LANG_ID) return;
-  if (!dialogueDecorationType) return;
-  const ranges = [];
+  if (!editor || editor.document.languageId !== LANG_ID) return [];
   const text = editor.document.getText();
+  const ranges = [];
   const re = /“[^”\n]*”|「[^」\n]*」/g;
   let m;
   while ((m = re.exec(text)) !== null) {
@@ -352,7 +389,175 @@ function refreshDialogueDecorations() {
       )
     );
   }
-  editor.setDecorations(dialogueDecorationType, ranges);
+  return ranges;
+}
+
+function refreshDialogueDecorations() {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor || editor.document.languageId !== LANG_ID) return;
+  const ranges = collectDialogueRanges();
+  // 基础样式: 只装饰没有说话人配色的引号
+  if (dialogueDecorationType) {
+    const base = ranges.filter((_, i) => speakerAssignments[i] == null);
+    editor.setDecorations(dialogueDecorationType, base);
+  }
+  // 说话人配色: 每个色系单独一个 DecorationType
+  for (let c = 0; c < speakerDecorationTypes.length; c++) {
+    const assigned = ranges.filter((_, i) => speakerAssignments[i] === c);
+    editor.setDecorations(speakerDecorationTypes[c].type, assigned);
+  }
+}
+
+/** 命令: 循环配色对话(每条对话轮换不同颜色) */
+async function cycleDialogueColors() {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor || editor.document.languageId !== LANG_ID) {
+    vscode.window.showWarningMessage("请先打开一个 .txt 文件");
+    return;
+  }
+  const ranges = collectDialogueRanges();
+  if (!ranges.length) {
+    vscode.window.showInformationMessage("没有找到对话引号（“”「」）");
+    return;
+  }
+  speakerAssignments = ranges.map((_, i) => i % SPEAKER_PALETTE.length);
+  refreshDialogueDecorations();
+  vscode.window.showInformationMessage(
+    `已为 ${ranges.length} 段对话应用循环配色（每条不同颜色）`
+  );
+}
+
+/** 说话人分析缓存目录 */
+function speakersCacheDir() {
+  return vscode.Uri.joinPath(ctx.globalStorageUri, "speakers");
+}
+
+async function loadCachedSpeakers(quotes) {
+  const key = speakers.cacheKeyFor(quotes);
+  const uri = vscode.Uri.joinPath(speakersCacheDir(), `${key}.json`);
+  try {
+    const raw = await vscode.workspace.fs.readFile(uri);
+    const data = JSON.parse(Buffer.from(raw).toString("utf8"));
+    return data; // { assignments: number[] , speakers: string[] }
+  } catch {
+    return null;
+  }
+}
+
+async function saveCachedSpeakers(quotes, assignments, speakerNames) {
+  const key = speakers.cacheKeyFor(quotes);
+  const uri = vscode.Uri.joinPath(speakersCacheDir(), `${key}.json`);
+  await vscode.workspace.fs.createDirectory(speakersCacheDir());
+  await vscode.workspace.fs.writeFile(
+    uri,
+    Buffer.from(
+      JSON.stringify({ assignments, speakers: speakerNames }, null, 2),
+      "utf8"
+    )
+  );
+}
+
+/** 按 moyu.dialogue.speakerColors 设置自动应用(打开文件/设置变化时) */
+async function applySpeakerMode() {
+  const mode = vscode.workspace
+    .getConfiguration("moyu")
+    .get("dialogue.speakerColors", "off");
+  const editor = vscode.window.activeTextEditor;
+  if (!editor || editor.document.languageId !== LANG_ID) return;
+  if (mode === "off") {
+    speakerAssignments = [];
+    refreshDialogueDecorations();
+    return;
+  }
+  const quotes = speakers.extractQuotes(editor.document.getText());
+  if (mode === "cycle") {
+    speakerAssignments = quotes.map((_, i) => i % SPEAKER_PALETTE.length);
+    refreshDialogueDecorations();
+    return;
+  }
+  if (mode === "ai") {
+    const cached = await loadCachedSpeakers(quotes);
+    if (cached && Array.isArray(cached.assignments)) {
+      speakerAssignments = cached.assignments;
+      refreshDialogueDecorations();
+    }
+    // 无缓存时保持现状, 用户运行「AI 识别说话人」命令后生效
+  }
+}
+
+/** 命令: AI 识别说话人(Claude 分析 + 按人配色 + 缓存) */
+async function analyzeSpeakersCommand() {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor || editor.document.languageId !== LANG_ID) {
+    vscode.window.showWarningMessage("请先打开一个 .txt 文件");
+    return;
+  }
+  const conf = vscode.workspace.getConfiguration("moyu");
+  const apiKey = conf.get("dialogue.ai.apiKey", "");
+  const baseUrl = conf.get("dialogue.ai.baseUrl", "");
+  const model = conf.get("dialogue.ai.model", "claude-opus-5");
+  if (!apiKey && !process.env.ANTHROPIC_API_KEY) {
+    vscode.window
+      .showWarningMessage(
+        "未配置 API Key。请在设置中填写 moyu.dialogue.ai.apiKey（或设置环境变量 ANTHROPIC_API_KEY）",
+        "打开设置"
+      )
+      .then((choice) => {
+        if (choice === "打开设置") {
+          vscode.commands.executeCommand(
+            "workbench.action.openSettings",
+            "moyu.dialogue.ai"
+          );
+        }
+      });
+    return;
+  }
+
+  const quotes = speakers.extractQuotes(editor.document.getText());
+  if (!quotes.length) {
+    vscode.window.showInformationMessage("没有找到对话引号（“”「」）");
+    return;
+  }
+
+  let result;
+  try {
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: `AI 正在分析 ${quotes.length} 段对话的说话人…`,
+      },
+      async () => {
+        result = await speakers.analyzeSpeakers(
+          { apiKey, baseUrl, model },
+          quotes
+        );
+      }
+    );
+  } catch (err) {
+    const detail =
+      err && err.message ? err.message.slice(0, 300) : String(err);
+    vscode.window.showErrorMessage(`AI 分析失败: ${detail}`);
+    return;
+  }
+
+  // 说话人 -> 配色索引(按首次出现顺序, 颜色稳定)
+  const speakerColor = new Map();
+  let next = 0;
+  for (const r of result) {
+    if (!speakerColor.has(r.speaker)) speakerColor.set(r.speaker, next++);
+  }
+  const assignments = quotes.map((q, i) => {
+    const r = result.find((x) => x.index === i);
+    return r ? speakerColor.get(r.speaker) : null;
+  });
+  speakerAssignments = assignments;
+  refreshDialogueDecorations();
+  await saveCachedSpeakers(quotes, assignments, [...speakerColor.keys()]);
+
+  const names = [...speakerColor.keys()].join("、");
+  vscode.window.showInformationMessage(
+    `识别出 ${speakerColor.size} 个说话人: ${names}（结果已缓存，打开同类文档自动生效）`
+  );
 }
 
 // ---------- 大纲伪装 ----------
@@ -425,6 +630,8 @@ function activate(context) {
       applyReadingSettings(true)
     ),
     vscode.commands.registerCommand("moyu.pickDialogueStyle", pickDialogueStyle),
+    vscode.commands.registerCommand("moyu.cycleDialogueColors", cycleDialogueColors),
+    vscode.commands.registerCommand("moyu.analyzeSpeakers", analyzeSpeakersCommand),
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration("moyu.reading")) {
         applyReadingSettings().catch(() => {});
@@ -436,6 +643,7 @@ function activate(context) {
     vscode.window.onDidChangeActiveTextEditor(() => {
       refreshStatusBar();
       refreshDialogueDecorations();
+      applySpeakerMode().catch(() => {});
     }),
     vscode.workspace.onDidChangeTextDocument((e) => {
       if (e.document.languageId === LANG_ID) {
@@ -444,6 +652,11 @@ function activate(context) {
     }),
     vscode.window.onDidChangeActiveColorTheme(() => {
       updateDialogueDecoration();
+    }),
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("moyu.dialogue")) {
+        applySpeakerMode().catch(() => {});
+      }
     }),
     vscode.languages.registerDocumentSymbolProvider(
       { language: LANG_ID },
@@ -455,6 +668,7 @@ function activate(context) {
     console.error("[moyu] applyReadingSettings failed:", err)
   );
   updateDialogueDecoration();
+  applySpeakerMode().catch(() => {});
   // 编辑器初始化晚于 onLanguage 激活, 延迟重应用确保装饰生效
   setTimeout(() => refreshDialogueDecorations(), 1000);
   refreshStatusBar();

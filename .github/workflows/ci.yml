@@ -31,6 +31,10 @@ jobs:
         run: |
           node --check extension.js
           node --check templates.js
+          node --check speakers.js
+
+      - name: 安装扩展依赖 (Anthropic SDK)
+        run: npm ci --ignore-scripts
 
       - name: 语法高亮分词单元测试 (vscode-textmate)
         working-directory: e2e

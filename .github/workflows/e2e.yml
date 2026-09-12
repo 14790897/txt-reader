@@ -37,6 +37,11 @@ jobs:
           Write-Host "VS Code found: $exe"
           "VSCODE_CLI=$exe" >> $env:GITHUB_ENV
 
+      - name: 安装扩展依赖 (Anthropic SDK, 开发宿主需要)
+        run: npm ci --ignore-scripts
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
       - name: 安装 E2E 依赖
         working-directory: e2e
         run: npm ci --ignore-scripts

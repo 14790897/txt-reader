@@ -11,6 +11,7 @@
 import { test, expect, chromium } from '@playwright/test';
 import type { Browser, Page } from '@playwright/test';
 import { spawn, execSync, type ChildProcess } from 'node:child_process';
+import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -26,6 +27,7 @@ const NOVEL = `第一章 风起
 
 第二章 开局
 
+　　“来了。”王五推门进来，一身雨气。
 　　https://example.com/novel 链接在此。他说：action！
 `;
 
@@ -139,6 +141,60 @@ function countByCmdlineMarker(marker: string): number {
   }
 }
 
+/** Mock Claude API: 返回固定的说话人分析结果, 并记录收到的请求 */
+function startMockClaudeServer(): Promise<{ port: number; lastRequest: () => any }> {
+  let captured: any = null;
+  return new Promise((resolve) => {
+    const server = http.createServer((req, res) => {
+      let body = '';
+      req.on('data', (d) => (body += d));
+      req.on('end', () => {
+        captured = { url: req.url, headers: req.headers, body };
+        const payload = JSON.stringify({
+          id: 'msg_mock_speakers_1',
+          type: 'message',
+          role: 'assistant',
+          model: 'claude-opus-5',
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                speakers: [
+                  { index: 0, speaker: '李四' },
+                  { index: 1, speaker: '王五' },
+                ],
+              }),
+            },
+          ],
+          stop_reason: 'end_turn',
+          stop_sequence: null,
+          usage: { input_tokens: 42, output_tokens: 30 },
+        });
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(payload);
+      });
+    });
+    server.listen(0, '127.0.0.1', () => {
+      const port = (server.address() as any).port;
+      resolve({ port, lastRequest: () => captured });
+    });
+  });
+}
+
+/** 收集渲染层含指定文本的可见 span 的颜色(装饰生效时应有对应的色值) */
+async function renderedSpanColors(page: Page, text: string): Promise<string[]> {
+  const mainEditor = page
+    .locator('.monaco-editor')
+    .filter({ hasText: '第一章' })
+    .first();
+  const spans = await mainEditor.locator('.view-line span').evaluateAll((els) =>
+    els
+      .filter((e) => e.getClientRects().length > 0)
+      .map((e) => ({ text: e.textContent || '', color: getComputedStyle(e).color })),
+  );
+  return [...new Set(spans.filter((s) => s.text.includes(text)).map((s) => s.color))];
+}
+
 test.describe('摸鱼阅读器 E2E', () => {
   let vscodeProcess: ChildProcess | null = null;
   let browser: Browser | null = null;
@@ -146,6 +202,7 @@ test.describe('摸鱼阅读器 E2E', () => {
   let novelPath: string;
   let userDataDir: string;
   let backupsDir: string;
+  let mockAI: { port: number; lastRequest: () => any };
 
   test.beforeAll(async () => {
     const codeCLI = findVSCodeCLI();
@@ -153,6 +210,9 @@ test.describe('摸鱼阅读器 E2E', () => {
       test.skip(true, 'VS Code not installed — skipping');
       return;
     }
+
+    // Mock Claude API: 说话人分析走本地桩服务(确定性测试, 不依赖真实 API)
+    mockAI = await startMockClaudeServer();
 
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'moyu-e2e-'));
     userDataDir = path.join(tmpDir, 'user-data');
@@ -189,6 +249,8 @@ test.describe('摸鱼阅读器 E2E', () => {
           'moyu.reading.fontSize': 24,
           'moyu.reading.lineHeight': 2.4,
           'moyu.highlight.dialogueStyle': 'bold',
+          'moyu.dialogue.ai.baseUrl': `http://127.0.0.1:${mockAI.port}`,
+          'moyu.dialogue.ai.apiKey': 'test-key',
         },
         null,
         2,
@@ -462,7 +524,77 @@ test.describe('摸鱼阅读器 E2E', () => {
       .toBe('bold-same');
   });
 
-  test('5. Ctrl+Alt+D 伪装成代码并生成备份', async () => {
+  test('5. 循环配色对话: 每段对话轮换不同颜色', async () => {
+    // 命令面板输入 Cycle 触发循环配色
+    await page.keyboard.press('Control+Shift+P');
+    await page.keyboard.type('Cycle');
+    const entry = page
+      .locator('.quick-input-widget .monaco-list-row')
+      .filter({ hasText: '循环配色对话' })
+      .first();
+    await expect(entry).toBeVisible({ timeout: 10_000 });
+    await page.keyboard.press('Enter');
+
+    // 第 1 段对话 -> 调色板第 1 色, 第 2 段 -> 第 2 色
+    await expect
+      .poll(() => renderedSpanColors(page, '今天也要好好摸鱼'), {
+        timeout: 15_000,
+      })
+      .toContain('rgb(78, 201, 176)');
+    await expect
+      .poll(() => renderedSpanColors(page, '来了'), { timeout: 15_000 })
+      .toContain('rgb(220, 220, 170)');
+  });
+
+  test('6. AI 识别说话人: 按人固定配色并缓存', async () => {
+    await page.keyboard.press('Control+Shift+P');
+    await page.keyboard.type('Analyze');
+    const entry = page
+      .locator('.quick-input-widget .monaco-list-row')
+      .filter({ hasText: 'AI 识别说话人' })
+      .first();
+    await expect(entry).toBeVisible({ timeout: 10_000 });
+    await page.keyboard.press('Enter');
+
+    // mock 服务应收到包含对话原文的请求
+    await expect
+      .poll(() => mockAI.lastRequest(), { timeout: 30_000 })
+      .not.toBeNull();
+    const req = mockAI.lastRequest();
+    expect(req.body).toContain('今天也要好好摸鱼');
+    expect(req.body).toContain('来了');
+
+    // 李四(第1段) -> 色1, 王五(第2段) -> 色2
+    await expect
+      .poll(() => renderedSpanColors(page, '今天也要好好摸鱼'), {
+        timeout: 15_000,
+      })
+      .toContain('rgb(78, 201, 176)');
+    await expect
+      .poll(() => renderedSpanColors(page, '来了'), { timeout: 15_000 })
+      .toContain('rgb(220, 220, 170)');
+
+    // 分析结果已缓存到扩展私有目录
+    const speakersDir = path.join(
+      userDataDir,
+      'User',
+      'globalStorage',
+      'take-a-rest-dev.moyu-reader',
+      'speakers',
+    );
+    await expect
+      .poll(() => {
+        try {
+          return fs.readdirSync(speakersDir).filter((f) => f.endsWith('.json'))
+            .length;
+        } catch {
+          return 0;
+        }
+      }, { timeout: 15_000 })
+      .toBe(1);
+  });
+
+  test('7. Ctrl+Alt+D 伪装成代码并生成备份', async () => {
     // 聚焦编辑器后按快捷键
     await page.locator('.monaco-editor .view-lines').first().click();
     await page.keyboard.press('Control+Alt+D');
@@ -494,7 +626,7 @@ test.describe('摸鱼阅读器 E2E', () => {
     await page.screenshot({ path: 'test-results/02-disguised.png' });
   });
 
-  test('6. Ctrl+Alt+X 老板键：还原原文+保存+切纯文本', async () => {
+  test('8. Ctrl+Alt+X 老板键：还原原文+保存+切纯文本', async () => {
     await page.locator('.monaco-editor .view-lines').first().click();
     await page.keyboard.press('Control+Alt+X');
 

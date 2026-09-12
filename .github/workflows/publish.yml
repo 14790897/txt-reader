@@ -30,6 +30,9 @@ jobs:
           fi
           echo "版本校验通过: $VER"
 
+      - name: 安装依赖 (Anthropic SDK)
+        run: npm ci --ignore-scripts
+
       - name: 打包验证 (vsce package)
         run: npx -y @vscode/vsce@latest package --skip-license
 

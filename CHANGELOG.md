@@ -1,5 +1,13 @@
 # 更新日志
 
+## [0.5.0] - 2026-09-12
+
+- 新增「循环配色对话」：每段对话轮换不同颜色（无需 AI）
+- 新增「AI 识别说话人」：Claude 分析每句话是谁说的，按人固定配色；结果缓存到扩展私有目录，同文档自动生效
+- 新设置：`moyu.dialogue.speakerColors`（off/cycle/ai）、`moyu.dialogue.ai.model`（默认 claude-opus-5）、`apiKey`、`baseUrl`
+- 说话人配色与对话样式（加粗/字符串色）可叠加
+- E2E 新增两条用例（mock Claude API 端到端验证），8 条全绿
+
 ## [0.4.0] - 2026-09-10
 
 - 新增「摸鱼: 切换对话引号样式」命令（快捷键 Ctrl+Alt+S / 命令面板输入 Dialogue / 右键菜单）
