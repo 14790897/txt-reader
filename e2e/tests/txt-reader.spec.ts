@@ -653,7 +653,7 @@ test.describe('TXT 阅读器 E2E', () => {
     s['txtreader.dialogue.ai.model'] = '';
     fs.writeFileSync(settingsPath, JSON.stringify(s, null, 2), 'utf8');
 
-    // 配置热加载有延迟: 重试直到请求携带 deepseek-chat 模型名
+    // 配置热加载有延迟: 重试直到请求携带 deepseek-flash 模型名
     let req: any = null;
     for (let attempt = 0; attempt < 6; attempt++) {
       if (attempt > 0) await page.waitForTimeout(2000);
@@ -669,12 +669,12 @@ test.describe('TXT 阅读器 E2E', () => {
         .poll(() => mockAI.lastRequest(), { timeout: 30_000 })
         .not.toBeNull();
       req = mockAI.lastRequest();
-      if ((req.body || '').includes('deepseek-chat')) break;
+      if ((req.body || '').includes('deepseek-flash')) break;
     }
 
     // DeepSeek 预设: OpenAI 格式请求 + 预设模型名
     expect(req.url).toContain('/v1/chat/completions');
-    expect(req.body).toContain('deepseek-chat');
+    expect(req.body).toContain('deepseek-flash');
 
     // 配色与前面一致(李四色1, 王五色2)
     await expect

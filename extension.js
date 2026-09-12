@@ -501,7 +501,7 @@ async function analyzeSpeakersCommand() {
   // DeepSeek 官方预设: 用户只填 Key, baseUrl 与模型自动填好(可覆盖)
   if (provider === "deepseek") {
     if (!baseUrl) baseUrl = "https://api.deepseek.com";
-    if (!model) model = "deepseek-chat";
+    if (!model) model = "deepseek-flash";
   }
   const keyEnv = isOpenAIFamily ? "OPENAI_API_KEY" : "ANTHROPIC_API_KEY";
   const hasKey =

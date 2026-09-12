@@ -1,5 +1,9 @@
 # 更新日志
 
+## [0.6.3] - 2026-09-12
+
+- DeepSeek 预设模型名更新为 deepseek-flash
+
 ## [0.6.2] - 2026-09-12
 
 - **彻底改名**：扩展 ID 变更为 `txt-reader`，设置前缀 `txtreader.*`，语言 ID `txt-reader`，主题更名 TXT Dark；旧关键词全部移除
@@ -8,8 +12,8 @@
 
 ## [0.6.1] - 2026-09-12
 
-- 新增 `deepseek` 接口预设：选它只填 API Key 即可，baseUrl 自动填 https://api.deepseek.com、模型自动填 deepseek-chat（均可手动覆盖）
-- 模型设置改为留空自动按接口选择（Anthropic→claude-opus-5 / OpenAI→gpt-4o-mini / DeepSeek→deepseek-chat）
+- 新增 `deepseek` 接口预设：选它只填 API Key 即可，baseUrl 自动填 https://api.deepseek.com、模型自动填 deepseek-flash（均可手动覆盖）
+- 模型设置改为留空自动按接口选择（Anthropic→claude-opus-5 / OpenAI→gpt-4o-mini / DeepSeek→deepseek-flash）
 - 市场描述图片改为公开图床托管（raw.githubusercontent.com），修复私有仓库导致描述页裂图的问题
 - E2E 新增 DeepSeek 预设用例，10 条全绿
 
