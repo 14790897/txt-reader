@@ -495,12 +495,17 @@ async function analyzeSpeakersCommand() {
   const conf = vscode.workspace.getConfiguration("moyu");
   const provider = conf.get("dialogue.ai.provider", "anthropic");
   const apiKey = conf.get("dialogue.ai.apiKey", "");
-  const baseUrl = conf.get("dialogue.ai.baseUrl", "");
-  const model = conf.get("dialogue.ai.model", "claude-opus-5");
-  const keyEnv =
-    provider === "openai" ? "OPENAI_API_KEY" : "ANTHROPIC_API_KEY";
+  let baseUrl = conf.get("dialogue.ai.baseUrl", "");
+  let model = conf.get("dialogue.ai.model", "");
+  const isOpenAIFamily = provider === "openai" || provider === "deepseek";
+  // DeepSeek 官方预设: 用户只填 Key, baseUrl 与模型自动填好(可覆盖)
+  if (provider === "deepseek") {
+    if (!baseUrl) baseUrl = "https://api.deepseek.com";
+    if (!model) model = "deepseek-chat";
+  }
+  const keyEnv = isOpenAIFamily ? "OPENAI_API_KEY" : "ANTHROPIC_API_KEY";
   const hasKey =
-    !!apiKey || (provider === "openai"
+    !!apiKey || (isOpenAIFamily
       ? !!process.env.OPENAI_API_KEY
       : !!process.env.ANTHROPIC_API_KEY);
   if (!hasKey) {
@@ -534,13 +539,12 @@ async function analyzeSpeakersCommand() {
         title: `AI 正在分析 ${quotes.length} 段对话的说话人…`,
       },
       async () => {
-        result =
-          provider === "openai"
-            ? await speakers.analyzeSpeakersOpenAI(
-                { apiKey, baseUrl, model },
-                quotes
-              )
-            : await speakers.analyzeSpeakers({ apiKey, baseUrl, model }, quotes);
+        result = isOpenAIFamily
+          ? await speakers.analyzeSpeakersOpenAI(
+              { apiKey, baseUrl, model },
+              quotes
+            )
+          : await speakers.analyzeSpeakers({ apiKey, baseUrl, model }, quotes);
       }
     );
   } catch (err) {

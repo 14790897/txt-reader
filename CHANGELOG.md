@@ -1,5 +1,16 @@
 # 更新日志
 
+## [0.6.1] - 2026-09-12
+
+- 新增 `deepseek` 接口预设：选它只填 API Key 即可，baseUrl 自动填 https://api.deepseek.com、模型自动填 deepseek-chat（均可手动覆盖）
+- 模型设置改为留空自动按接口选择（Anthropic→claude-opus-5 / OpenAI→gpt-4o-mini / DeepSeek→deepseek-chat）
+- 市场描述图片改为公开图床托管（raw.githubusercontent.com），修复私有仓库导致描述页裂图的问题
+- E2E 新增 DeepSeek 预设用例，10 条全绿
+
+## [0.6.0] - 2026-09-12
+
+- 品牌中性化：展示文案全部改为 TXT 阅读器 (TXT Reader) 定位，旧品牌词仅保留为搜索关键词
+
 ## [0.5.1] - 2026-09-12
 
 - 新增 `moyu.dialogue.ai.provider`：`anthropic`（默认）与 `openai` 两种接口格式

@@ -16,19 +16,19 @@
 
 **txt 代码样式高亮**（语言模式：TXT 阅读）
 
-![](https://github.com/14790897/moyu-reader/releases/download/_gh-imgup/81ad7327902bed3b.png)
+![](https://raw.githubusercontent.com/14790897/txt-reader-assets/main/01-txt-highlighted.png)
 
 **伪装成代码**（Ctrl+Alt+D，小说嵌入 Python 模板）
 
-![](https://github.com/14790897/moyu-reader/releases/download/_gh-imgup/935480530ed14bc3.png)
+![](https://raw.githubusercontent.com/14790897/txt-reader-assets/main/02-disguised.png)
 
 **阅读舒适排版**（默认字号 20 / 行距 2.2，对话加粗样式，全部可配置）
 
-![](https://github.com/14790897/moyu-reader/releases/download/_gh-imgup/6f56fd667c884c63.png)
+![](https://raw.githubusercontent.com/14790897/txt-reader-assets/main/04-reading-settings.png)
 
 **紧急还原**（Ctrl+Alt+X，原文逐字节恢复 + 切回 Plain Text）
 
-![](https://github.com/14790897/moyu-reader/releases/download/_gh-imgup/a7f4727cb84b9f43.png)
+![](https://raw.githubusercontent.com/14790897/txt-reader-assets/main/03-restored-plain.png)
 
 ## 安装
 
@@ -121,7 +121,7 @@ class TextProcessor:
 | `moyu.reading.fontFamily` | `""` | 阅读字体，留空跟随全局字体 |
 | `moyu.highlight.dialogueStyle` | `string` | 对话引号样式：`string` 字符串色 / `bold` 加粗（与正文同色）/ `plain` 纯文本 |
 | `moyu.dialogue.speakerColors` | `off` | 按说话人配色：`off` 关闭 / `cycle` 循环配色 / `ai` AI 识别后按人配色（自动应用缓存结果） |
-| `moyu.dialogue.ai.provider` | `anthropic` | 接口格式：`anthropic`（默认 Claude）/ `openai`（OpenAI 兼容，支持 DeepSeek、Kimi、通义、各类中转） |
+| `moyu.dialogue.ai.provider` | `anthropic` | 接口格式：`anthropic`（默认 Claude）/ `openai`（OpenAI 兼容）/ `deepseek`（**官方预设，只填 Key 即可**） |
 | `moyu.dialogue.ai.model` | `claude-opus-5` | AI 识别说话人使用的模型（OpenAI 模式留空默认 `gpt-4o-mini`） |
 | `moyu.dialogue.ai.apiKey` | `""` | API Key（留空读取环境变量 ANTHROPIC_API_KEY / OPENAI_API_KEY） |
 | `moyu.dialogue.ai.baseUrl` | `""` | API 地址（留空用官方，可填代理/中继地址） |

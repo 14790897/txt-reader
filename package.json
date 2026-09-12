@@ -2,7 +2,7 @@
   "name": "moyu-reader",
   "displayName": "TXT 阅读器 (TXT Reader)",
   "description": "txt 阅读器：代码风格语法高亮、舒适阅读排版、按说话人对话配色，支持 AI 识别说话人与一键还原原文。",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "publisher": "take-a-rest-dev",
   "icon": "icon.png",
   "repository": {
@@ -242,19 +242,21 @@
           "type": "string",
           "enum": [
             "anthropic",
-            "openai"
+            "openai",
+            "deepseek"
           ],
           "enumDescriptions": [
-            "Anthropic Claude（默认，官方 SDK，模型默认 claude-opus-5）",
-            "OpenAI 兼容接口（/v1/chat/completions，适用于 OpenAI、DeepSeek、Kimi、通义、各类中转代理）"
+            "Anthropic Claude（默认，官方 SDK）",
+            "OpenAI 兼容接口（/v1/chat/completions，适用于 OpenAI、Kimi、通义、各类中转代理）",
+            "DeepSeek 官方接口（预设 baseUrl 与模型，只需填 API Key）"
           ],
           "default": "anthropic",
           "description": "AI 识别说话人的接口格式"
         },
         "moyu.dialogue.ai.model": {
           "type": "string",
-          "default": "claude-opus-5",
-          "description": "AI 识别说话人使用的模型（Anthropic 默认 claude-opus-5；OpenAI 兼容模式留空默认 gpt-4o-mini）"
+          "default": "",
+          "description": "AI 识别说话人使用的模型（留空按接口自动选择：Anthropic→claude-opus-5，OpenAI→gpt-4o-mini，DeepSeek→deepseek-chat）"
         },
         "moyu.dialogue.ai.apiKey": {
           "type": "string",

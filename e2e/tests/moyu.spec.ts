@@ -645,7 +645,49 @@ test.describe('TXT 阅读器 E2E', () => {
       .toContain('rgb(220, 220, 170)');
   });
 
-  test('8. Ctrl+Alt+D 伪装成代码并生成备份', async () => {
+  test('8. AI 识别说话人: DeepSeek 官方预设(零配置)', async () => {
+    const settingsPath = path.join(userDataDir, 'User', 'settings.json');
+    const s = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    s['moyu.dialogue.ai.provider'] = 'deepseek';
+    s['moyu.dialogue.ai.baseUrl'] = `http://127.0.0.1:${mockAI.port}`;
+    s['moyu.dialogue.ai.model'] = '';
+    fs.writeFileSync(settingsPath, JSON.stringify(s, null, 2), 'utf8');
+
+    // 配置热加载有延迟: 重试直到请求携带 deepseek-chat 模型名
+    let req: any = null;
+    for (let attempt = 0; attempt < 6; attempt++) {
+      if (attempt > 0) await page.waitForTimeout(2000);
+      await page.keyboard.press('Control+Shift+P');
+      await page.keyboard.type('Analyze');
+      const entry = page
+        .locator('.quick-input-widget .monaco-list-row')
+        .filter({ hasText: 'AI 识别说话人' })
+        .first();
+      await expect(entry).toBeVisible({ timeout: 10_000 });
+      await page.keyboard.press('Enter');
+      await expect
+        .poll(() => mockAI.lastRequest(), { timeout: 30_000 })
+        .not.toBeNull();
+      req = mockAI.lastRequest();
+      if ((req.body || '').includes('deepseek-chat')) break;
+    }
+
+    // DeepSeek 预设: OpenAI 格式请求 + 预设模型名
+    expect(req.url).toContain('/v1/chat/completions');
+    expect(req.body).toContain('deepseek-chat');
+
+    // 配色与前面一致(李四色1, 王五色2)
+    await expect
+      .poll(() => renderedSpanColors(page, '今天也要好好读书'), {
+        timeout: 15_000,
+      })
+      .toContain('rgb(78, 201, 176)');
+    await expect
+      .poll(() => renderedSpanColors(page, '来了'), { timeout: 15_000 })
+      .toContain('rgb(220, 220, 170)');
+  });
+
+  test('9. Ctrl+Alt+D 伪装成代码并生成备份', async () => {
     // 聚焦编辑器后按快捷键
     await page.locator('.monaco-editor .view-lines').first().click();
     await page.keyboard.press('Control+Alt+D');
@@ -677,7 +719,7 @@ test.describe('TXT 阅读器 E2E', () => {
     await page.screenshot({ path: 'test-results/02-disguised.png' });
   });
 
-  test('9. Ctrl+Alt+X 老板键：还原原文+保存+切纯文本', async () => {
+  test('10. Ctrl+Alt+X 老板键：还原原文+保存+切纯文本', async () => {
     await page.locator('.monaco-editor .view-lines').first().click();
     await page.keyboard.press('Control+Alt+X');
 

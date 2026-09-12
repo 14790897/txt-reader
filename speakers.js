@@ -71,7 +71,7 @@ async function analyzeSpeakers({ apiKey, baseUrl, model }, quotes) {
   const client = new Anthropic(opts);
 
   const response = await client.beta.messages.create({
-    model,
+    model: model || "claude-opus-5",
     max_tokens: 16000,
     // claude-opus-5 的服务端拒绝回退: 内容被安全策略拒绝时自动换模型重试
     betas: ["server-side-fallback-2026-07-01"],
