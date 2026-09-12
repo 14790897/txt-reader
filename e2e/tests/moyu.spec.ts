@@ -1,5 +1,5 @@
 /**
- * 摸鱼阅读器 (moyu-reader) VS Code 扩展 E2E 测试
+ * TXT 阅读器 (moyu-reader) VS Code 扩展 E2E 测试
  *
  * 通过 CDP 拉起真实 VS Code 开发宿主（extensionDevelopmentPath 加载本扩展），验证：
  *  1. .txt 自动关联 moyu-txt 语言 + 语法高亮分词生效
@@ -23,7 +23,7 @@ const EXT_DIR = path.resolve(__dirname, '..', '..');
 const NOVEL = `第一章 风起
 
 　　天刚蒙蒙亮，李四就醒了。他推开窗，外面的世界一片安静。
-　　“今天也要好好摸鱼。”他对自己说，2026年9月9日。
+　　“今天也要好好读书。”他对自己说，2026年9月9日。
 
 第二章 开局
 
@@ -203,7 +203,7 @@ async function renderedSpanColors(page: Page, text: string): Promise<string[]> {
   return [...new Set(spans.filter((s) => s.text.includes(text)).map((s) => s.color))];
 }
 
-test.describe('摸鱼阅读器 E2E', () => {
+test.describe('TXT 阅读器 E2E', () => {
   let vscodeProcess: ChildProcess | null = null;
   let browser: Browser | null = null;
   let page: Page;
@@ -323,10 +323,10 @@ test.describe('摸鱼阅读器 E2E', () => {
       .first();
     await expect(firstLine).toBeVisible({ timeout: 60_000 });
 
-    // 状态栏语言模式 = 摸鱼文本（.txt 已被 moyu-txt 语言接管）
+    // 状态栏语言模式 = TXT 阅读（.txt 已被 moyu-txt 语言接管）
     const langItem = page
       .locator('.statusbar-item')
-      .filter({ hasText: /摸鱼文本|Moyu Text/ })
+      .filter({ hasText: /TXT 阅读|Moyu Text/ })
       .first();
     await expect(langItem).toBeVisible({ timeout: 30_000 });
 
@@ -440,7 +440,7 @@ test.describe('摸鱼阅读器 E2E', () => {
           })),
       );
     const dialogue = renderedSpans.filter((s) =>
-      s.text.includes('今天也要好好摸鱼'),
+      s.text.includes('今天也要好好读书'),
     );
     const prose = renderedSpans.filter((s) => s.text.includes('他对自己说'));
     const boldSameColor = dialogue.some(
@@ -481,7 +481,7 @@ test.describe('摸鱼阅读器 E2E', () => {
       );
     const dialogueState = async () => {
       const spans = await spanStyles();
-      const d = spans.filter((s) => s.text.includes('今天也要好好摸鱼'));
+      const d = spans.filter((s) => s.text.includes('今天也要好好读书'));
       const p = spans.filter((s) => s.text.includes('他对自己说'));
       if (!d.length || !p.length) return null;
       const colored = d.some((s) => !p.some((x) => x.color === s.color));
@@ -545,7 +545,7 @@ test.describe('摸鱼阅读器 E2E', () => {
 
     // 第 1 段对话 -> 调色板第 1 色, 第 2 段 -> 第 2 色
     await expect
-      .poll(() => renderedSpanColors(page, '今天也要好好摸鱼'), {
+      .poll(() => renderedSpanColors(page, '今天也要好好读书'), {
         timeout: 15_000,
       })
       .toContain('rgb(78, 201, 176)');
@@ -569,12 +569,12 @@ test.describe('摸鱼阅读器 E2E', () => {
       .poll(() => mockAI.lastRequest(), { timeout: 30_000 })
       .not.toBeNull();
     const req = mockAI.lastRequest();
-    expect(req.body).toContain('今天也要好好摸鱼');
+    expect(req.body).toContain('今天也要好好读书');
     expect(req.body).toContain('来了');
 
     // 李四(第1段) -> 色1, 王五(第2段) -> 色2
     await expect
-      .poll(() => renderedSpanColors(page, '今天也要好好摸鱼'), {
+      .poll(() => renderedSpanColors(page, '今天也要好好读书'), {
         timeout: 15_000,
       })
       .toContain('rgb(78, 201, 176)');
@@ -632,11 +632,11 @@ test.describe('摸鱼阅读器 E2E', () => {
     // 请求应发到 /v1/chat/completions(OpenAI 格式)
     expect(req.url).toContain('/v1/chat/completions');
     expect(req.headers.authorization).toBe('Bearer test-key');
-    expect(req.body).toContain('今天也要好好摸鱼');
+    expect(req.body).toContain('今天也要好好读书');
 
     // 配色与 Anthropic 模式一致(李四色1, 王五色2)
     await expect
-      .poll(() => renderedSpanColors(page, '今天也要好好摸鱼'), {
+      .poll(() => renderedSpanColors(page, '今天也要好好读书'), {
         timeout: 15_000,
       })
       .toContain('rgb(78, 201, 176)');

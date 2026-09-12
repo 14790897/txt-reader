@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "运行摸鱼阅读器 (Extension Host)",
+      "name": "运行 TXT 阅读器 (Extension Host)",
       "type": "extensionHost",
       "request": "launch",
       "args": [

@@ -34,7 +34,7 @@ const onig = require('vscode-oniguruma');
   const lines = [
     '他对自己说，2026年9月9日。',
     '　　天刚蒙蒙亮，李四就醒了。',
-    '　　“今天也要好好摸鱼。”他对自己说，2026年9月9日。',
+    '　　“今天也要好好读书。”他对自己说，2026年9月9日。',
     '第一章 风起',
     '# -*- coding: utf-8 -*-',
     'CONFIG = {"mode": "offline", "batch_size": 256}',

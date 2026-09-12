@@ -1,8 +1,8 @@
 {
   "name": "moyu-reader",
-  "displayName": "摸鱼阅读器 (Moyu Reader)",
-  "description": "把 txt 伪装成代码样式：语法高亮、代码模板伪装、老板键一键还原。上班摸鱼神器。",
-  "version": "0.5.1",
+  "displayName": "TXT 阅读器 (TXT Reader)",
+  "description": "txt 阅读器：代码风格语法高亮、舒适阅读排版、按说话人对话配色，支持 AI 识别说话人与一键还原原文。",
+  "version": "0.6.0",
   "publisher": "take-a-rest-dev",
   "icon": "icon.png",
   "repository": {
@@ -42,7 +42,7 @@
       {
         "id": "moyu-txt",
         "aliases": [
-          "摸鱼文本",
+          "TXT 阅读",
           "Moyu Text"
         ],
         "extensions": [
@@ -60,7 +60,7 @@
     ],
     "themes": [
       {
-        "label": "Moyu Dark (摸鱼暗色)",
+        "label": "Moyu Dark",
         "uiTheme": "vs-dark",
         "path": "./themes/moyu-dark.json"
       }
@@ -69,48 +69,48 @@
       {
         "command": "moyu.disguise",
         "title": "伪装成代码",
-        "category": "摸鱼"
+        "category": "TXT 阅读器"
       },
       {
         "command": "moyu.restore",
         "title": "还原原文",
-        "category": "摸鱼"
+        "category": "TXT 阅读器"
       },
       {
         "command": "moyu.panic",
         "title": "紧急还原（老板键）",
-        "category": "摸鱼",
+        "category": "TXT 阅读器",
         "icon": "$(eye-closed)"
       },
       {
         "command": "moyu.toggleStyle",
         "title": "切换 代码样式/纯文本",
-        "category": "摸鱼"
+        "category": "TXT 阅读器"
       },
       {
         "command": "moyu.applyTheme",
-        "title": "启用摸鱼主题",
-        "category": "摸鱼"
+        "title": "启用 Moyu Dark 主题",
+        "category": "TXT 阅读器"
       },
       {
         "command": "moyu.applyReadingSettings",
         "title": "应用阅读设置",
-        "category": "摸鱼"
+        "category": "TXT 阅读器"
       },
       {
         "command": "moyu.pickDialogueStyle",
         "title": "切换对话引号样式 (Dialogue Style)",
-        "category": "摸鱼"
+        "category": "TXT 阅读器"
       },
       {
         "command": "moyu.cycleDialogueColors",
         "title": "循环配色对话 (Cycle Colors)",
-        "category": "摸鱼"
+        "category": "TXT 阅读器"
       },
       {
         "command": "moyu.analyzeSpeakers",
         "title": "AI 识别说话人 (Analyze Speakers)",
-        "category": "摸鱼"
+        "category": "TXT 阅读器"
       }
     ],
     "keybindings": [
@@ -167,7 +167,7 @@
       ]
     },
     "configuration": {
-      "title": "摸鱼阅读器",
+      "title": "TXT 阅读器",
       "properties": {
         "moyu.template": {
           "type": "string",
@@ -187,26 +187,26 @@
         "moyu.reading.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "自动为「摸鱼文本」应用舒适的阅读排版（字号/行距），只影响 .txt 文件，老板键还原后会变回普通密集排版"
+          "description": "自动为「TXT 阅读」应用舒适的阅读排版（字号/行距），只影响 .txt 文件，老板键还原后会变回普通密集排版"
         },
         "moyu.reading.fontSize": {
           "type": "number",
           "default": 20,
           "minimum": 12,
           "maximum": 40,
-          "description": "摸鱼文本的阅读字号（默认 20；普通代码编辑器约 13）"
+          "description": "TXT 阅读的阅读字号（默认 20；普通代码编辑器约 13）"
         },
         "moyu.reading.lineHeight": {
           "type": "number",
           "default": 2.2,
           "minimum": 1,
           "maximum": 4,
-          "description": "摸鱼文本的行距倍率（默认 2.2；普通代码约 1.4 的密集行距）"
+          "description": "TXT 阅读的行距倍率（默认 2.2；普通代码约 1.4 的密集行距）"
         },
         "moyu.reading.fontFamily": {
           "type": "string",
           "default": "",
-          "description": "摸鱼文本的字体（留空则跟随全局字体，可填如 'Microsoft YaHei' 或带 fallback 的字体列表）"
+          "description": "TXT 阅读的字体（留空则跟随全局字体，可填如 'Microsoft YaHei' 或带 fallback 的字体列表）"
         },
         "moyu.highlight.dialogueStyle": {
           "type": "string",

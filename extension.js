@@ -10,7 +10,7 @@ const speakers = require("./speakers");
 
 const LANG_ID = "moyu-txt";
 const DISGUISED_CTX = "moyu.isDisguised";
-const THEME_LABEL = "Moyu Dark (摸鱼暗色)";
+const THEME_LABEL = "Moyu Dark";
 
 let ctx;
 let statusBar;
@@ -63,7 +63,7 @@ async function refreshStatusBar() {
   await vscode.commands.executeCommand("setContext", DISGUISED_CTX, disguised);
 
   if (disguised) {
-    statusBar.text = "$(eye) 摸鱼中";
+    statusBar.text = "$(eye) 伪装中";
     statusBar.tooltip = "该文件已伪装。点击紧急还原（Ctrl+Alt+X）";
     statusBar.command = "moyu.panic";
     statusBar.show();
@@ -130,7 +130,7 @@ async function disguise(doc) {
 
   await refreshStatusBar();
   vscode.window.showInformationMessage(
-    "已伪装成代码 ✅  按 Ctrl+S 保存生效；老板来了按 Ctrl+Alt+X 一键还原",
+    "已伪装成代码 ✅  按 Ctrl+S 保存生效；按 Ctrl+Alt+X 一键还原",
     "知道了"
   );
 }
