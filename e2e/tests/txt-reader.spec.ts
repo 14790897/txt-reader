@@ -724,7 +724,74 @@ test.describe('TXT 阅读器 E2E', () => {
       .not.toBeNull();
   });
 
-  test('10. Ctrl+Alt+D 伪装成代码并生成备份', async () => {
+  test('10. 无 Key 时命令内引导配置: 选择接口+输入Key+直接分析', async () => {
+    const settingsPath = path.join(userDataDir, 'User', 'settings.json');
+    // 清掉 Key 与 provider, 模拟全新用户
+    const s = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    s['txtreader.dialogue.ai.apiKey'] = '';
+    s['txtreader.dialogue.ai.provider'] = 'anthropic';
+    fs.writeFileSync(settingsPath, JSON.stringify(s, null, 2), 'utf8');
+    await page.waitForTimeout(2000);
+
+    // 运行 Analyze -> 应弹出接口选择
+    await page.keyboard.press('Control+Shift+P');
+    await page.keyboard.type('Analyze');
+    const entry = page
+      .locator('.quick-input-widget .monaco-list-row')
+      .filter({ hasText: 'AI 识别说话人' })
+      .first();
+    await expect(entry).toBeVisible({ timeout: 10_000 });
+    await entry.click();
+
+    // 接口选择: 点 DeepSeek
+    const providerRow = page
+      .locator('.quick-input-widget .monaco-list-row')
+      .filter({ hasText: 'DeepSeek' })
+      .first();
+    await expect(providerRow).toBeVisible({ timeout: 10_000 });
+    await providerRow.click();
+
+    // 输入 Key(用占位符等待新的输入框出现, 避免打到正在关闭的选择器里)
+    const keyInput = page.getByPlaceholder(/sk-\.\.\. 或你的 API Key/);
+    await expect(keyInput).toBeVisible({ timeout: 10_000 });
+    await keyInput.click();
+    await page.keyboard.type('test-key');
+    await page.keyboard.press('Enter');
+
+    // 配置被保存 + 分析自动继续(DeepSeek 预设 -> mock 收到 deepseek-flash)
+    await expect
+      .poll(
+        () => {
+          try {
+            const c = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+            return {
+              provider: c['txtreader.dialogue.ai.provider'],
+              apiKey: c['txtreader.dialogue.ai.apiKey'],
+            };
+          } catch {
+            return null;
+          }
+        },
+        { timeout: 15_000 },
+      )
+      .toEqual({ provider: 'deepseek', apiKey: 'test-key' });
+
+    let req: any = null;
+    await expect
+      .poll(() => mockAI.lastRequest(), { timeout: 30_000 })
+      .not.toBeNull();
+    req = mockAI.lastRequest();
+    expect(req.body).toContain('deepseek-flash');
+
+    // 配色生效
+    await expect
+      .poll(() => renderedSpanColors(page, '今天也要好好读书'), {
+        timeout: 15_000,
+      })
+      .toContain('rgb(78, 201, 176)');
+  });
+
+  test('11. Ctrl+Alt+D 伪装成代码并生成备份', async () => {
     // 聚焦编辑器后按快捷键
     await page.locator('.monaco-editor .view-lines').first().click();
     await page.keyboard.press('Control+Alt+D');
@@ -756,7 +823,7 @@ test.describe('TXT 阅读器 E2E', () => {
     await page.screenshot({ path: 'test-results/02-disguised.png' });
   });
 
-  test('11. Ctrl+Alt+X 老板键：还原原文+保存+切纯文本', async () => {
+  test('12. Ctrl+Alt+X 老板键：还原原文+保存+切纯文本', async () => {
     await page.locator('.monaco-editor .view-lines').first().click();
     await page.keyboard.press('Control+Alt+X');
 

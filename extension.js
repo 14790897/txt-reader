@@ -510,6 +510,56 @@ async function applySpeakerMode() {
   }
 }
 
+/** 命令内配置引导: 选择接口 -> 输入 Key -> 保存到设置 */
+async function setupAIInteraction() {
+  const conf = vscode.workspace.getConfiguration("txtreader");
+  const providers = [
+    {
+      label: "DeepSeek（推荐，只填 Key）",
+      description: "自动配置 baseUrl 与模型",
+      value: "deepseek",
+    },
+    {
+      label: "Anthropic Claude",
+      description: "官方 SDK，默认 claude-opus-5",
+      value: "anthropic",
+    },
+    {
+      label: "OpenAI 兼容",
+      description: "OpenAI / Kimi / 通义 / 中转 / 本地模型",
+      value: "openai",
+    },
+  ];
+  const picked = await vscode.window.showQuickPick(providers, {
+    placeHolder: "选择 AI 接口（随时可在设置中更改）",
+    ignoreFocusOut: true,
+  });
+  if (!picked) return null;
+  await conf.update(
+    "dialogue.ai.provider",
+    picked.value,
+    vscode.ConfigurationTarget.Global
+  );
+
+  const envName =
+    picked.value === "anthropic" ? "ANTHROPIC_API_KEY" : "OPENAI_API_KEY";
+  const key = await vscode.window.showInputBox({
+    prompt: `粘贴 ${picked.label} 的 API Key（留空则使用环境变量 ${envName}）`,
+    placeHolder: "sk-... 或你的 API Key",
+    password: true,
+    ignoreFocusOut: true,
+  });
+  if (key === undefined) return null; // 用户取消
+  if (key.trim()) {
+    await conf.update(
+      "dialogue.ai.apiKey",
+      key.trim(),
+      vscode.ConfigurationTarget.Global
+    );
+  }
+  return { provider: picked.value, apiKey: key.trim() };
+}
+
 /** 命令: AI 识别说话人(Claude 分析 + 按人配色 + 缓存) */
 async function analyzeSpeakersCommand() {
   const editor = vscode.window.activeTextEditor;
@@ -517,37 +567,40 @@ async function analyzeSpeakersCommand() {
     vscode.window.showWarningMessage("请先打开一个 .txt 文件");
     return;
   }
-  const conf = vscode.workspace.getConfiguration("txtreader");
-  const provider = conf.get("dialogue.ai.provider", "anthropic");
-  const apiKey = conf.get("dialogue.ai.apiKey", "");
-  let baseUrl = conf.get("dialogue.ai.baseUrl", "");
-  let model = conf.get("dialogue.ai.model", "");
+  let conf = vscode.workspace.getConfiguration("txtreader");
+  let provider = conf.get("dialogue.ai.provider", "anthropic");
+  let apiKey = conf.get("dialogue.ai.apiKey", "");
   const isOpenAIFamily = provider === "openai" || provider === "deepseek";
-  // DeepSeek 官方预设: 用户只填 Key, baseUrl 与模型自动填好(可覆盖)
-  if (provider === "deepseek") {
-    if (!baseUrl) baseUrl = "https://api.deepseek.com";
-    if (!model) model = "deepseek-flash";
-  }
-  const keyEnv = isOpenAIFamily ? "OPENAI_API_KEY" : "ANTHROPIC_API_KEY";
   const hasKey =
     !!apiKey || (isOpenAIFamily
       ? !!process.env.OPENAI_API_KEY
       : !!process.env.ANTHROPIC_API_KEY);
+
   if (!hasKey) {
-    vscode.window
-      .showWarningMessage(
-        `未配置 API Key。请在设置中填写 txtreader.dialogue.ai.apiKey（或设置环境变量 ${keyEnv}）`,
-        "打开设置"
-      )
-      .then((choice) => {
-        if (choice === "打开设置") {
-          vscode.commands.executeCommand(
-            "workbench.action.openSettings",
-            "txtreader.dialogue.ai"
-          );
-        }
-      });
-    return;
+    // 无 Key: 命令内引导配置(选择接口 + 输入 Key)
+    const setup = await setupAIInteraction();
+    if (!setup) return;
+    conf = vscode.workspace.getConfiguration("txtreader");
+    provider = conf.get("dialogue.ai.provider", "anthropic");
+    apiKey = conf.get("dialogue.ai.apiKey", "");
+    const family = provider === "openai" || provider === "deepseek";
+    if (
+      !apiKey &&
+      !(family ? process.env.OPENAI_API_KEY : process.env.ANTHROPIC_API_KEY)
+    ) {
+      vscode.window.showWarningMessage(
+        `未填写 Key 且环境变量 ${family ? "OPENAI_API_KEY" : "ANTHROPIC_API_KEY"} 不存在，已跳过分析`
+      );
+      return;
+    }
+  }
+
+  let baseUrl = conf.get("dialogue.ai.baseUrl", "");
+  let model = conf.get("dialogue.ai.model", "");
+  // DeepSeek 官方预设: 用户只填 Key, baseUrl 与模型自动填好(可覆盖)
+  if (provider === "deepseek") {
+    if (!baseUrl) baseUrl = "https://api.deepseek.com";
+    if (!model) model = "deepseek-flash";
   }
 
   const quotes = speakers.extractQuotes(editor.document.getText());
@@ -671,6 +724,14 @@ function activate(context) {
     vscode.commands.registerCommand("txtreader.pickDialogueStyle", pickDialogueStyle),
     vscode.commands.registerCommand("txtreader.cycleDialogueColors", cycleDialogueColors),
     vscode.commands.registerCommand("txtreader.analyzeSpeakers", analyzeSpeakersCommand),
+    vscode.commands.registerCommand("txtreader.setupAI", async () => {
+      const setup = await setupAIInteraction();
+      if (setup) {
+        vscode.window.showInformationMessage(
+          `AI 配置已保存：接口 ${setup.provider}${setup.apiKey ? "" : "（使用环境变量 Key）"}`
+        );
+      }
+    }),
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration("txtreader.reading")) {
         applyReadingSettings().catch(() => {});
