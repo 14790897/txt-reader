@@ -2,8 +2,13 @@
   "name": "moyu-reader",
   "displayName": "摸鱼阅读器 (Moyu Reader)",
   "description": "把 txt 伪装成代码样式：语法高亮、代码模板伪装、老板键一键还原。上班摸鱼神器。",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "publisher": "moyu-dev",
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/14790897/moyu-reader"
+  },
   "license": "MIT",
   "engines": {
     "vscode": "^1.80.0"
