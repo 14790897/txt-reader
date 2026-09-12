@@ -243,7 +243,7 @@ test.describe('TXT 阅读器 E2E', () => {
       userDataDir,
       'User',
       'globalStorage',
-      'take-a-rest-dev.txt-reader',
+      'take-a-rest-dev.txt-beautifier',
       'backups',
     );
 
@@ -587,7 +587,7 @@ test.describe('TXT 阅读器 E2E', () => {
       userDataDir,
       'User',
       'globalStorage',
-      'take-a-rest-dev.txt-reader',
+      'take-a-rest-dev.txt-beautifier',
       'speakers',
     );
     await expect

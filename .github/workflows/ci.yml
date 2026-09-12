@@ -21,7 +21,7 @@ jobs:
         run: |
           node -e "
             const fs = require('fs');
-            for (const f of ['package.json', 'syntaxes/moyu.tmLanguage.json', 'themes/moyu-dark.json', 'language-configuration.json']) {
+            for (const f of ['package.json', 'syntaxes/txtreader.tmLanguage.json', 'themes/txt-dark.json', 'language-configuration.json']) {
               JSON.parse(fs.readFileSync(f, 'utf8'));
               console.log(f + ' OK');
             }
