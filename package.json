@@ -2,7 +2,7 @@
   "name": "moyu-reader",
   "displayName": "摸鱼阅读器 (Moyu Reader)",
   "description": "把 txt 伪装成代码样式：语法高亮、代码模板伪装、老板键一键还原。上班摸鱼神器。",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "publisher": "take-a-rest-dev",
   "icon": "icon.png",
   "repository": {
@@ -238,10 +238,23 @@
           "default": "off",
           "description": "对话按说话人配色模式"
         },
+        "moyu.dialogue.ai.provider": {
+          "type": "string",
+          "enum": [
+            "anthropic",
+            "openai"
+          ],
+          "enumDescriptions": [
+            "Anthropic Claude（默认，官方 SDK，模型默认 claude-opus-5）",
+            "OpenAI 兼容接口（/v1/chat/completions，适用于 OpenAI、DeepSeek、Kimi、通义、各类中转代理）"
+          ],
+          "default": "anthropic",
+          "description": "AI 识别说话人的接口格式"
+        },
         "moyu.dialogue.ai.model": {
           "type": "string",
           "default": "claude-opus-5",
-          "description": "AI 识别说话人使用的 Claude 模型（可换 claude-haiku-4-5 降低成本）"
+          "description": "AI 识别说话人使用的模型（Anthropic 默认 claude-opus-5；OpenAI 兼容模式留空默认 gpt-4o-mini）"
         },
         "moyu.dialogue.ai.apiKey": {
           "type": "string",

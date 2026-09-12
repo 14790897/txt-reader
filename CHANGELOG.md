@@ -1,5 +1,12 @@
 # 更新日志
 
+## [0.5.1] - 2026-09-12
+
+- 新增 `moyu.dialogue.ai.provider`：`anthropic`（默认）与 `openai` 两种接口格式
+- OpenAI 兼容模式走 `/v1/chat/completions`，支持 OpenAI、DeepSeek、Kimi、通义及各类中转代理；API Key 可读环境变量 `OPENAI_API_KEY`
+- baseUrl 兼容带/不带版本号的写法（如 `https://api.openai.com/v1` 或 `https://api.deepseek.com`）
+- E2E 新增 OpenAI 兼容接口用例（mock 双格式响应），9 条全绿
+
 ## [0.5.0] - 2026-09-12
 
 - 新增「循环配色对话」：每段对话轮换不同颜色（无需 AI）

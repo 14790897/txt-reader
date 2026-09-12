@@ -112,10 +112,78 @@ async function analyzeSpeakers({ apiKey, baseUrl, model }, quotes) {
   return parseSpeakers(raw, quotes.length);
 }
 
+/**
+ * 调用 OpenAI 兼容接口(/v1/chat/completions)分析说话人。
+ * 适用于 OpenAI、DeepSeek、Kimi、通义、各类中转代理等 OpenAI 格式端点。
+ */
+async function analyzeSpeakersOpenAI({ apiKey, baseUrl, model }, quotes) {
+  const key = apiKey || process.env.OPENAI_API_KEY;
+  if (!key) {
+    throw new Error(
+      "未提供 API Key（设置 moyu.dialogue.ai.apiKey 或环境变量 OPENAI_API_KEY）"
+    );
+  }
+  let endpoint;
+  if (baseUrl) {
+    endpoint = baseUrl.replace(/\/+$/, "");
+    // 兼容两种写法: 带版本号的 base(https://api.openai.com/v1) 与不带版本号的
+    // (https://api.deepseek.com), 都拼到 /v1/chat/completions
+    endpoint = /\/v\d+$/.test(endpoint)
+      ? `${endpoint}/chat/completions`
+      : `${endpoint}/v1/chat/completions`;
+  } else {
+    endpoint = "https://api.openai.com/v1/chat/completions";
+  }
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify({
+      model: model || "gpt-4o-mini",
+      temperature: 0,
+      messages: [
+        {
+          role: "system",
+          content:
+            '你只输出 JSON，格式 {"speakers":[{"index":0,"speaker":"名字"}]}，不输出任何其他内容。',
+        },
+        { role: "user", content: buildPrompt(quotes) },
+      ],
+    }),
+    signal: AbortSignal.timeout(120_000),
+  });
+
+  if (!response.ok) {
+    const snippet = (await response.text().catch(() => "")).slice(0, 200);
+    throw new Error(`OpenAI 接口返回 ${response.status}: ${snippet}`);
+  }
+  const data = await response.json();
+  const content =
+    data &&
+    data.choices &&
+    data.choices[0] &&
+    data.choices[0].message &&
+    data.choices[0].message.content;
+  if (!content) {
+    throw new Error("OpenAI 接口返回缺少 choices[0].message.content");
+  }
+  return parseSpeakers(content, quotes.length);
+}
+
 /** 缓存键: 由引号文本+上下文构成, 内容变化即失效 */
 function cacheKeyFor(quotes) {
   const payload = quotes.map((q) => `${q.text}${q.context}`).join("");
   return crypto.createHash("sha1").update(payload).digest("hex").slice(0, 16);
 }
 
-module.exports = { extractQuotes, buildPrompt, parseSpeakers, analyzeSpeakers, cacheKeyFor };
+module.exports = {
+  extractQuotes,
+  buildPrompt,
+  parseSpeakers,
+  analyzeSpeakers,
+  analyzeSpeakersOpenAI,
+  cacheKeyFor,
+};

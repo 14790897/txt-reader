@@ -150,26 +150,34 @@ function startMockClaudeServer(): Promise<{ port: number; lastRequest: () => any
       req.on('data', (d) => (body += d));
       req.on('end', () => {
         captured = { url: req.url, headers: req.headers, body };
-        const payload = JSON.stringify({
-          id: 'msg_mock_speakers_1',
-          type: 'message',
-          role: 'assistant',
-          model: 'claude-opus-5',
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                speakers: [
-                  { index: 0, speaker: '李四' },
-                  { index: 1, speaker: '王五' },
-                ],
-              }),
-            },
+        const speakersJson = JSON.stringify({
+          speakers: [
+            { index: 0, speaker: '李四' },
+            { index: 1, speaker: '王五' },
           ],
-          stop_reason: 'end_turn',
-          stop_sequence: null,
-          usage: { input_tokens: 42, output_tokens: 30 },
         });
+        // OpenAI 兼容路径 -> /v1/chat/completions 格式; 其余按 Anthropic 格式
+        let payload;
+        if ((req.url || '').includes('chat/completions')) {
+          payload = JSON.stringify({
+            id: 'chatcmpl-mock1',
+            object: 'chat.completion',
+            model: 'gpt-4o-mini',
+            choices: [{ index: 0, message: { role: 'assistant', content: speakersJson }, finish_reason: 'stop' }],
+            usage: { prompt_tokens: 42, completion_tokens: 30, total_tokens: 72 },
+          });
+        } else {
+          payload = JSON.stringify({
+            id: 'msg_mock_speakers_1',
+            type: 'message',
+            role: 'assistant',
+            model: 'claude-opus-5',
+            content: [{ type: 'text', text: speakersJson }],
+            stop_reason: 'end_turn',
+            stop_sequence: null,
+            usage: { input_tokens: 42, output_tokens: 30 },
+          });
+        }
         res.writeHead(200, { 'content-type': 'application/json' });
         res.end(payload);
       });
@@ -594,7 +602,50 @@ test.describe('摸鱼阅读器 E2E', () => {
       .toBe(1);
   });
 
-  test('7. Ctrl+Alt+D 伪装成代码并生成备份', async () => {
+  test('7. AI 识别说话人: OpenAI 兼容接口', async () => {
+    // 切到 OpenAI 兼容模式(外部改写 settings.json, VS Code 会热加载)
+    const settingsPath = path.join(userDataDir, 'User', 'settings.json');
+    const s = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    s['moyu.dialogue.ai.provider'] = 'openai';
+    s['moyu.dialogue.ai.baseUrl'] = `http://127.0.0.1:${mockAI.port}`;
+    fs.writeFileSync(settingsPath, JSON.stringify(s, null, 2), 'utf8');
+
+    // 配置热加载有延迟: 重试执行命令直到请求落到 /v1/chat/completions
+    let req: any = null;
+    for (let attempt = 0; attempt < 6; attempt++) {
+      if (attempt > 0) await page.waitForTimeout(2000);
+      await page.keyboard.press('Control+Shift+P');
+      await page.keyboard.type('Analyze');
+      const entry = page
+        .locator('.quick-input-widget .monaco-list-row')
+        .filter({ hasText: 'AI 识别说话人' })
+        .first();
+      await expect(entry).toBeVisible({ timeout: 10_000 });
+      await page.keyboard.press('Enter');
+      await expect
+        .poll(() => mockAI.lastRequest(), { timeout: 30_000 })
+        .not.toBeNull();
+      req = mockAI.lastRequest();
+      if ((req.url || '').includes('chat/completions')) break;
+    }
+
+    // 请求应发到 /v1/chat/completions(OpenAI 格式)
+    expect(req.url).toContain('/v1/chat/completions');
+    expect(req.headers.authorization).toBe('Bearer test-key');
+    expect(req.body).toContain('今天也要好好摸鱼');
+
+    // 配色与 Anthropic 模式一致(李四色1, 王五色2)
+    await expect
+      .poll(() => renderedSpanColors(page, '今天也要好好摸鱼'), {
+        timeout: 15_000,
+      })
+      .toContain('rgb(78, 201, 176)');
+    await expect
+      .poll(() => renderedSpanColors(page, '来了'), { timeout: 15_000 })
+      .toContain('rgb(220, 220, 170)');
+  });
+
+  test('8. Ctrl+Alt+D 伪装成代码并生成备份', async () => {
     // 聚焦编辑器后按快捷键
     await page.locator('.monaco-editor .view-lines').first().click();
     await page.keyboard.press('Control+Alt+D');
@@ -626,7 +677,7 @@ test.describe('摸鱼阅读器 E2E', () => {
     await page.screenshot({ path: 'test-results/02-disguised.png' });
   });
 
-  test('8. Ctrl+Alt+X 老板键：还原原文+保存+切纯文本', async () => {
+  test('9. Ctrl+Alt+X 老板键：还原原文+保存+切纯文本', async () => {
     await page.locator('.monaco-editor .view-lines').first().click();
     await page.keyboard.press('Control+Alt+X');
 

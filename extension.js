@@ -493,13 +493,20 @@ async function analyzeSpeakersCommand() {
     return;
   }
   const conf = vscode.workspace.getConfiguration("moyu");
+  const provider = conf.get("dialogue.ai.provider", "anthropic");
   const apiKey = conf.get("dialogue.ai.apiKey", "");
   const baseUrl = conf.get("dialogue.ai.baseUrl", "");
   const model = conf.get("dialogue.ai.model", "claude-opus-5");
-  if (!apiKey && !process.env.ANTHROPIC_API_KEY) {
+  const keyEnv =
+    provider === "openai" ? "OPENAI_API_KEY" : "ANTHROPIC_API_KEY";
+  const hasKey =
+    !!apiKey || (provider === "openai"
+      ? !!process.env.OPENAI_API_KEY
+      : !!process.env.ANTHROPIC_API_KEY);
+  if (!hasKey) {
     vscode.window
       .showWarningMessage(
-        "未配置 API Key。请在设置中填写 moyu.dialogue.ai.apiKey（或设置环境变量 ANTHROPIC_API_KEY）",
+        `未配置 API Key。请在设置中填写 moyu.dialogue.ai.apiKey（或设置环境变量 ${keyEnv}）`,
         "打开设置"
       )
       .then((choice) => {
@@ -527,10 +534,13 @@ async function analyzeSpeakersCommand() {
         title: `AI 正在分析 ${quotes.length} 段对话的说话人…`,
       },
       async () => {
-        result = await speakers.analyzeSpeakers(
-          { apiKey, baseUrl, model },
-          quotes
-        );
+        result =
+          provider === "openai"
+            ? await speakers.analyzeSpeakersOpenAI(
+                { apiKey, baseUrl, model },
+                quotes
+              )
+            : await speakers.analyzeSpeakers({ apiKey, baseUrl, model }, quotes);
       }
     );
   } catch (err) {

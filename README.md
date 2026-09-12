@@ -117,7 +117,8 @@ class TextProcessor:
 | `moyu.reading.fontFamily` | `""` | 阅读字体，留空跟随全局字体 |
 | `moyu.highlight.dialogueStyle` | `string` | 对话引号样式：`string` 字符串色 / `bold` 加粗（与正文同色）/ `plain` 纯文本 |
 | `moyu.dialogue.speakerColors` | `off` | 按说话人配色：`off` 关闭 / `cycle` 循环配色 / `ai` AI 识别后按人配色（自动应用缓存结果） |
-| `moyu.dialogue.ai.model` | `claude-opus-5` | AI 识别说话人使用的模型（成本敏感可换 `claude-haiku-4-5`） |
+| `moyu.dialogue.ai.provider` | `anthropic` | 接口格式：`anthropic`（默认 Claude）/ `openai`（OpenAI 兼容，支持 DeepSeek、Kimi、通义、各类中转） |
+| `moyu.dialogue.ai.model` | `claude-opus-5` | AI 识别说话人使用的模型（OpenAI 模式留空默认 `gpt-4o-mini`） |
 | `moyu.dialogue.ai.apiKey` | `""` | Anthropic API Key（留空读取环境变量 ANTHROPIC_API_KEY） |
 | `moyu.dialogue.ai.baseUrl` | `""` | API 地址（留空用官方，可填代理/中继地址） |
 | `moyu.template` | `python` | 伪装模板：`python` / `cpp` / `js` |
