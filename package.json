@@ -2,7 +2,7 @@
   "name": "txt-beautifier",
   "displayName": "TXT 美化阅读器 (TXT Beautify Reader)",
   "description": "txt 阅读器：代码风格语法高亮、舒适阅读排版、按说话人对话配色，支持 AI 识别说话人与一键还原原文。",
-  "version": "0.6.4",
+  "version": "0.6.5",
   "publisher": "take-a-rest-dev",
   "icon": "icon.png",
   "repository": {
@@ -156,6 +156,16 @@
           "command": "txtreader.pickDialogueStyle",
           "group": "txtreader@4",
           "when": "resourceExtname == .txt"
+        },
+        {
+          "command": "txtreader.cycleDialogueColors",
+          "when": "resourceExtname == .txt",
+          "group": "txtreader@5"
+        },
+        {
+          "command": "txtreader.analyzeSpeakers",
+          "when": "resourceExtname == .txt",
+          "group": "txtreader@6"
         }
       ],
       "editor/title": [
