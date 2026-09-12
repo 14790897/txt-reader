@@ -1,13 +1,13 @@
 {
-  "name": "moyu-reader",
+  "name": "txt-reader",
   "displayName": "TXT 阅读器 (TXT Reader)",
   "description": "txt 阅读器：代码风格语法高亮、舒适阅读排版、按说话人对话配色，支持 AI 识别说话人与一键还原原文。",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "publisher": "take-a-rest-dev",
   "icon": "icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/14790897/moyu-reader"
+    "url": "https://github.com/14790897/txt-reader"
   },
   "license": "MIT",
   "engines": {
@@ -20,30 +20,30 @@
   "keywords": [
     "txt",
     "novel",
-    "moyu",
-    "摸鱼",
+    "reader",
+    "beautifier",
     "小说"
   ],
   "main": "./extension.js",
   "activationEvents": [
-    "onLanguage:moyu-txt",
-    "onCommand:moyu.disguise",
-    "onCommand:moyu.restore",
-    "onCommand:moyu.panic",
-    "onCommand:moyu.toggleStyle",
-    "onCommand:moyu.applyTheme",
-    "onCommand:moyu.applyReadingSettings",
-    "onCommand:moyu.pickDialogueStyle",
-    "onCommand:moyu.cycleDialogueColors",
-    "onCommand:moyu.analyzeSpeakers"
+    "onLanguage:txt-reader",
+    "onCommand:txtreader.disguise",
+    "onCommand:txtreader.restore",
+    "onCommand:txtreader.panic",
+    "onCommand:txtreader.toggleStyle",
+    "onCommand:txtreader.applyTheme",
+    "onCommand:txtreader.applyReadingSettings",
+    "onCommand:txtreader.pickDialogueStyle",
+    "onCommand:txtreader.cycleDialogueColors",
+    "onCommand:txtreader.analyzeSpeakers"
   ],
   "contributes": {
     "languages": [
       {
-        "id": "moyu-txt",
+        "id": "txt-reader",
         "aliases": [
           "TXT 阅读",
-          "Moyu Text"
+          "TXT Reader"
         ],
         "extensions": [
           ".txt"
@@ -53,79 +53,79 @@
     ],
     "grammars": [
       {
-        "language": "moyu-txt",
-        "scopeName": "text.moyu",
-        "path": "./syntaxes/moyu.tmLanguage.json"
+        "language": "txt-reader",
+        "scopeName": "source.txtreader",
+        "path": "./syntaxes/txtreader.tmLanguage.json"
       }
     ],
     "themes": [
       {
-        "label": "Moyu Dark",
+        "label": "TXT Dark",
         "uiTheme": "vs-dark",
-        "path": "./themes/moyu-dark.json"
+        "path": "./themes/txt-dark.json"
       }
     ],
     "commands": [
       {
-        "command": "moyu.disguise",
+        "command": "txtreader.disguise",
         "title": "伪装成代码",
         "category": "TXT 阅读器"
       },
       {
-        "command": "moyu.restore",
+        "command": "txtreader.restore",
         "title": "还原原文",
         "category": "TXT 阅读器"
       },
       {
-        "command": "moyu.panic",
+        "command": "txtreader.panic",
         "title": "紧急还原（老板键）",
         "category": "TXT 阅读器",
         "icon": "$(eye-closed)"
       },
       {
-        "command": "moyu.toggleStyle",
+        "command": "txtreader.toggleStyle",
         "title": "切换 代码样式/纯文本",
         "category": "TXT 阅读器"
       },
       {
-        "command": "moyu.applyTheme",
+        "command": "txtreader.applyTheme",
         "title": "启用 Moyu Dark 主题",
         "category": "TXT 阅读器"
       },
       {
-        "command": "moyu.applyReadingSettings",
+        "command": "txtreader.applyReadingSettings",
         "title": "应用阅读设置",
         "category": "TXT 阅读器"
       },
       {
-        "command": "moyu.pickDialogueStyle",
+        "command": "txtreader.pickDialogueStyle",
         "title": "切换对话引号样式 (Dialogue Style)",
         "category": "TXT 阅读器"
       },
       {
-        "command": "moyu.cycleDialogueColors",
+        "command": "txtreader.cycleDialogueColors",
         "title": "循环配色对话 (Cycle Colors)",
         "category": "TXT 阅读器"
       },
       {
-        "command": "moyu.analyzeSpeakers",
+        "command": "txtreader.analyzeSpeakers",
         "title": "AI 识别说话人 (Analyze Speakers)",
         "category": "TXT 阅读器"
       }
     ],
     "keybindings": [
       {
-        "command": "moyu.disguise",
+        "command": "txtreader.disguise",
         "key": "ctrl+alt+d",
         "when": "editorTextFocus && resourceExtname == .txt"
       },
       {
-        "command": "moyu.panic",
+        "command": "txtreader.panic",
         "key": "ctrl+alt+x",
         "when": "editorTextFocus"
       },
       {
-        "command": "moyu.pickDialogueStyle",
+        "command": "txtreader.pickDialogueStyle",
         "key": "ctrl+alt+s",
         "when": "editorTextFocus && resourceExtname == .txt"
       }
@@ -133,35 +133,35 @@
     "menus": {
       "editor/context": [
         {
-          "command": "moyu.disguise",
-          "when": "resourceExtname == .txt && !moyu.isDisguised",
-          "group": "moyu@1"
+          "command": "txtreader.disguise",
+          "when": "resourceExtname == .txt && !txtreader.isDisguised",
+          "group": "txtreader@1"
         },
         {
-          "command": "moyu.restore",
-          "when": "moyu.isDisguised",
-          "group": "moyu@2"
+          "command": "txtreader.restore",
+          "when": "txtreader.isDisguised",
+          "group": "txtreader@2"
         },
         {
-          "command": "moyu.panic",
-          "when": "moyu.isDisguised",
-          "group": "moyu@3"
+          "command": "txtreader.panic",
+          "when": "txtreader.isDisguised",
+          "group": "txtreader@3"
         },
         {
-          "command": "moyu.toggleStyle",
+          "command": "txtreader.toggleStyle",
           "when": "resourceExtname == .txt",
-          "group": "moyu@3"
+          "group": "txtreader@3"
         },
         {
-          "command": "moyu.pickDialogueStyle",
-          "group": "moyu@4",
+          "command": "txtreader.pickDialogueStyle",
+          "group": "txtreader@4",
           "when": "resourceExtname == .txt"
         }
       ],
       "editor/title": [
         {
-          "command": "moyu.panic",
-          "when": "moyu.isDisguised",
+          "command": "txtreader.panic",
+          "when": "txtreader.isDisguised",
           "group": "navigation@1"
         }
       ]
@@ -169,7 +169,7 @@
     "configuration": {
       "title": "TXT 阅读器",
       "properties": {
-        "moyu.template": {
+        "txtreader.template": {
           "type": "string",
           "enum": [
             "python",
@@ -184,31 +184,31 @@
           "default": "python",
           "description": "「伪装成代码」时使用的代码模板"
         },
-        "moyu.reading.enabled": {
+        "txtreader.reading.enabled": {
           "type": "boolean",
           "default": true,
           "description": "自动为「TXT 阅读」应用舒适的阅读排版（字号/行距），只影响 .txt 文件，老板键还原后会变回普通密集排版"
         },
-        "moyu.reading.fontSize": {
+        "txtreader.reading.fontSize": {
           "type": "number",
           "default": 20,
           "minimum": 12,
           "maximum": 40,
           "description": "TXT 阅读的阅读字号（默认 20；普通代码编辑器约 13）"
         },
-        "moyu.reading.lineHeight": {
+        "txtreader.reading.lineHeight": {
           "type": "number",
           "default": 2.2,
           "minimum": 1,
           "maximum": 4,
           "description": "TXT 阅读的行距倍率（默认 2.2；普通代码约 1.4 的密集行距）"
         },
-        "moyu.reading.fontFamily": {
+        "txtreader.reading.fontFamily": {
           "type": "string",
           "default": "",
           "description": "TXT 阅读的字体（留空则跟随全局字体，可填如 'Microsoft YaHei' 或带 fallback 的字体列表）"
         },
-        "moyu.highlight.dialogueStyle": {
+        "txtreader.highlight.dialogueStyle": {
           "type": "string",
           "enum": [
             "string",
@@ -223,7 +223,7 @@
           "default": "string",
           "description": "中文对话引号（“”「」）的显示样式"
         },
-        "moyu.dialogue.speakerColors": {
+        "txtreader.dialogue.speakerColors": {
           "type": "string",
           "enum": [
             "off",
@@ -238,7 +238,7 @@
           "default": "off",
           "description": "对话按说话人配色模式"
         },
-        "moyu.dialogue.ai.provider": {
+        "txtreader.dialogue.ai.provider": {
           "type": "string",
           "enum": [
             "anthropic",
@@ -253,17 +253,17 @@
           "default": "anthropic",
           "description": "AI 识别说话人的接口格式"
         },
-        "moyu.dialogue.ai.model": {
+        "txtreader.dialogue.ai.model": {
           "type": "string",
           "default": "",
           "description": "AI 识别说话人使用的模型（留空按接口自动选择：Anthropic→claude-opus-5，OpenAI→gpt-4o-mini，DeepSeek→deepseek-chat）"
         },
-        "moyu.dialogue.ai.apiKey": {
+        "txtreader.dialogue.ai.apiKey": {
           "type": "string",
           "default": "",
           "description": "Anthropic API Key（留空则读取环境变量 ANTHROPIC_API_KEY）"
         },
-        "moyu.dialogue.ai.baseUrl": {
+        "txtreader.dialogue.ai.baseUrl": {
           "type": "string",
           "default": "",
           "description": "API 地址（留空使用官方地址；使用代理/中继时填写）"

@@ -10,7 +10,7 @@
 - **代码模板伪装**：一键把全文包进 Python / C++ / Node.js 代码模板，一眼看去就是代码
 - **紧急还原**：`Ctrl+Alt+X` 瞬间还原原文、保存、并切回纯文本显示（阅读排版也会随语言切回密集的普通代码样式）
 - **大纲**：侧边栏大纲/面包屑里，章节显示为函数符号，模板里的 class/def 照常显示
-- **Moyu Dark 主题**：附赠一套暗色主题，txt 高亮更协调（同时也是一套正常可用的通用主题）
+- **TXT Dark 主题**：附赠一套暗色主题，txt 高亮更协调（同时也是一套正常可用的通用主题）
 
 ## 效果截图
 
@@ -34,11 +34,11 @@
 
 ### 方式一：扩展商店
 
-VS Code 扩展面板（Ctrl+Shift+X）搜索「TXT 阅读器」或「moyu」即可安装。
+VS Code 扩展面板（Ctrl+Shift+X）搜索「TXT 阅读器」即可安装。
 
 ### 方式二：开发调试
 
-1. 用 VS Code 打开本文件夹（`moyu-reader`）
+1. 用 VS Code 打开本文件夹（`txt-reader`）
 2. 按 `F5`，会弹出一个新的 VS Code 窗口（扩展开发宿主）
 3. 在新窗口里打开任意 `.txt` 文件即可看到效果
 
@@ -62,7 +62,7 @@ vsce package
 | 切换对话引号样式 | `Ctrl+Alt+S` | 下拉选择 橙红色/加粗/纯文本，选完立即生效 |
 | 循环配色对话 | - | 每段对话轮换不同颜色（无需 AI，命令面板输入 Cycle） |
 | AI 识别说话人 | - | Claude 分析每句话是谁说的，按人固定配色并缓存（命令面板输入 Analyze） |
-| 启用 Moyu Dark 主题 | - | 应用 Moyu Dark 主题 |
+| 启用 TXT Dark 主题 | - | 应用 TXT Dark 主题 |
 
 状态栏右侧有 `👁 伪装中` 指示器，点击即触发紧急还原。右键菜单里也有全部命令。
 
@@ -105,29 +105,29 @@ class TextProcessor:
 
 ## 自定义
 
-- `moyu.template` 设置项：切换 `python` / `cpp` / `js` 三种伪装模板
+- `txtreader.template` 设置项：切换 `python` / `cpp` / `js` 三种伪装模板
 - 想加自己的模板：改 `templates.js` 里的 `TEMPLATES`
-- 想改高亮颜色：改 `themes/moyu-dark.json` 里的 `tokenColors`
+- 想改高亮颜色：改 `themes/txt-dark.json` 里的 `tokenColors`
 
 ## 设置（配置项）
 
-打开 `文件 → 首选项 → 设置`，搜索 `moyu` 即可看到全部配置项：
+打开 `文件 → 首选项 → 设置`，搜索 `txtreader` 即可看到全部配置项：
 
 | 配置项 | 默认值 | 说明 |
 | --- | --- | --- |
-| `moyu.reading.enabled` | `true` | 是否自动为「TXT 阅读」应用舒适阅读排版（只影响 .txt） |
-| `moyu.reading.fontSize` | `20` | 阅读字号（普通代码约 13） |
-| `moyu.reading.lineHeight` | `2.2` | 行距倍率（普通代码约 1.4 的密集行距） |
-| `moyu.reading.fontFamily` | `""` | 阅读字体，留空跟随全局字体 |
-| `moyu.highlight.dialogueStyle` | `string` | 对话引号样式：`string` 字符串色 / `bold` 加粗（与正文同色）/ `plain` 纯文本 |
-| `moyu.dialogue.speakerColors` | `off` | 按说话人配色：`off` 关闭 / `cycle` 循环配色 / `ai` AI 识别后按人配色（自动应用缓存结果） |
-| `moyu.dialogue.ai.provider` | `anthropic` | 接口格式：`anthropic`（默认 Claude）/ `openai`（OpenAI 兼容）/ `deepseek`（**官方预设，只填 Key 即可**） |
-| `moyu.dialogue.ai.model` | `claude-opus-5` | AI 识别说话人使用的模型（OpenAI 模式留空默认 `gpt-4o-mini`） |
-| `moyu.dialogue.ai.apiKey` | `""` | API Key（留空读取环境变量 ANTHROPIC_API_KEY / OPENAI_API_KEY） |
-| `moyu.dialogue.ai.baseUrl` | `""` | API 地址（留空用官方，可填代理/中继地址） |
-| `moyu.template` | `python` | 伪装模板：`python` / `cpp` / `js` |
+| `txtreader.reading.enabled` | `true` | 是否自动为「TXT 阅读」应用舒适阅读排版（只影响 .txt） |
+| `txtreader.reading.fontSize` | `20` | 阅读字号（普通代码约 13） |
+| `txtreader.reading.lineHeight` | `2.2` | 行距倍率（普通代码约 1.4 的密集行距） |
+| `txtreader.reading.fontFamily` | `""` | 阅读字体，留空跟随全局字体 |
+| `txtreader.highlight.dialogueStyle` | `string` | 对话引号样式：`string` 字符串色 / `bold` 加粗（与正文同色）/ `plain` 纯文本 |
+| `txtreader.dialogue.speakerColors` | `off` | 按说话人配色：`off` 关闭 / `cycle` 循环配色 / `ai` AI 识别后按人配色（自动应用缓存结果） |
+| `txtreader.dialogue.ai.provider` | `anthropic` | 接口格式：`anthropic`（默认 Claude）/ `openai`（OpenAI 兼容）/ `deepseek`（**官方预设，只填 Key 即可**） |
+| `txtreader.dialogue.ai.model` | `""` | AI 识别说话人使用的模型（OpenAI 模式留空默认 `gpt-4o-mini`） |
+| `txtreader.dialogue.ai.apiKey` | `""` | API Key（留空读取环境变量 ANTHROPIC_API_KEY / OPENAI_API_KEY） |
+| `txtreader.dialogue.ai.baseUrl` | `""` | API 地址（留空用官方，可填代理/中继地址） |
+| `txtreader.template` | `python` | 伪装模板：`python` / `cpp` / `js` |
 
-修改后立即生效（插件会实时同步到 `[moyu-txt]` 语言级设置，**不会**影响其他语言文件）。也可以手动执行命令「应用阅读设置」。
+修改后立即生效（插件会实时同步到 `[txt-reader]` 语言级设置，**不会**影响其他语言文件）。也可以手动执行命令「应用阅读设置」。
 
 > 💡 紧急还原 `Ctrl+Alt+X` 会把语言切回纯文本，阅读排版随之消失、变回普通密集的代码样式——从字号到行距都看不出异常。
 
@@ -141,13 +141,13 @@ npm install   # 已安装过可跳过
 npx playwright test --project=vscode --reporter=list
 ```
 
-覆盖九条用例：txt 自动启用代码样式语言并分词高亮、阅读配置自动应用、对话引号样式、可视化切换、循环配色、AI 识别说话人（Anthropic + OpenAI 兼容两种接口，mock 服务端到端验证）、伪装成代码、紧急还原。测试自动使用临时 user-data-dir 和空 extensions-dir 隔离环境，结束后按命令行标记精确清理 VS Code 实例。`test-grammar.js` 是语法高亮的单元级回归测试，改 grammar 后先跑它。
+覆盖十条用例：txt 自动启用代码样式语言并分词高亮、阅读配置自动应用、对话引号样式、可视化切换、循环配色、AI 识别说话人（Anthropic / OpenAI 兼容 / DeepSeek 预设三种接口，mock 服务端到端验证）、伪装成代码、紧急还原。测试自动使用临时 user-data-dir 和空 extensions-dir 隔离环境，结束后按命令行标记精确清理 VS Code 实例。`test-grammar.js` 是语法高亮的单元级回归测试，改 grammar 后先跑它。
 
 > ⚠️ 如果 VS Code 有排队中的自动更新，更新安装器会占住 `vscode-updating` 互斥量，导致开发宿主无法启动（报 "Code is currently being updated"）。可以先跑 `e2e/clear-pending-update.ps1` 把排队中的更新包移出安装目录再测。
 
 ## 发版流程（自动发布）
 
-1. 改代码，把 `package.json` 的 `version` 改成新版本号（如 `0.6.0`），提交推送
+1. 改代码，把 `package.json` 的 `version` 改成新版本号（如 `0.6.2`），提交推送
 2. 打 tag 并推送：`git tag v0.6.0 && git push origin v0.6.0`
 3. GitHub Actions 自动完成：版本校验 → 打包验证 → 发布 VS Code 市场 → 创建 GitHub Release（附 VSIX）
 4. 也可在 Actions → Publish Extension 手动触发
@@ -158,4 +158,4 @@ npx playwright test --project=vscode --reporter=list
 - **模板里原文会被改动吗？** 不会。原文原样嵌入模板，还原按备份恢复。
 - **一些极端情况**：原文里出现 Python 的 `"""`、C++ 的 `)"`、JS 的反引号时，模板结构可能被破坏（视觉上）。换一种模板即可。
 - **之前已经打开过的 txt 没变色？** 关闭重新打开，或用「切换 代码样式/纯文本」命令切一下。
-- **快捷键冲突？** 在 VS Code 键盘快捷方式里搜索 `moyu` 自行修改。
+- **快捷键冲突？** 在 VS Code 键盘快捷方式里搜索 `txtreader` 自行修改。

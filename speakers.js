@@ -120,7 +120,7 @@ async function analyzeSpeakersOpenAI({ apiKey, baseUrl, model }, quotes) {
   const key = apiKey || process.env.OPENAI_API_KEY;
   if (!key) {
     throw new Error(
-      "未提供 API Key（设置 moyu.dialogue.ai.apiKey 或环境变量 OPENAI_API_KEY）"
+      "未提供 API Key（设置 txtreader.dialogue.ai.apiKey 或环境变量 OPENAI_API_KEY）"
     );
   }
   let endpoint;

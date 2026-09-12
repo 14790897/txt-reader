@@ -1,5 +1,5 @@
 {
-  "name": "moyu-reader-e2e",
+  "name": "txt-reader-e2e",
   "private": true,
   "scripts": {
     "test": "playwright test --project=vscode --reporter=list"

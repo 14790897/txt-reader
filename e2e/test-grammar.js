@@ -24,12 +24,12 @@ const onig = require('vscode-oniguruma');
     loadGrammar: async () =>
       JSON.parse(
         fs.readFileSync(
-          path.resolve(__dirname, '..', 'syntaxes', 'moyu.tmLanguage.json'),
+          path.resolve(__dirname, '..', 'syntaxes', 'txtreader.tmLanguage.json'),
           'utf8',
         ),
       ),
   });
-  const grammar = await registry.loadGrammar('text.moyu');
+  const grammar = await registry.loadGrammar('source.txtreader');
 
   const lines = [
     '他对自己说，2026年9月9日。',

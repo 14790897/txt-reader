@@ -1,8 +1,8 @@
 /**
- * TXT 阅读器 (moyu-reader) VS Code 扩展 E2E 测试
+ * TXT 阅读器 (txt-reader) VS Code 扩展 E2E 测试
  *
  * 通过 CDP 拉起真实 VS Code 开发宿主（extensionDevelopmentPath 加载本扩展），验证：
- *  1. .txt 自动关联 moyu-txt 语言 + 语法高亮分词生效
+ *  1. .txt 自动关联 txt-reader 语言 + 语法高亮分词生效
  *  2. Ctrl+Alt+D 伪装成代码：内容变模板 + 原文嵌入 + 备份生成
  *  3. Ctrl+Alt+X 老板键：还原原文 + 保存 + 切纯文本 + 备份删除
  *
@@ -222,7 +222,7 @@ test.describe('TXT 阅读器 E2E', () => {
     // Mock Claude API: 说话人分析走本地桩服务(确定性测试, 不依赖真实 API)
     mockAI = await startMockClaudeServer();
 
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'moyu-e2e-'));
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'txtreader-e2e-'));
     userDataDir = path.join(tmpDir, 'user-data');
     fs.mkdirSync(userDataDir, { recursive: true });
     // 关键: 空 extensions-dir 隔离用户真实扩展(重型 AI 扩展会拖慢甚至崩掉扩展宿主)
@@ -230,12 +230,12 @@ test.describe('TXT 阅读器 E2E', () => {
     fs.mkdirSync(extensionsDir, { recursive: true });
 
     // 清理历史测试泄漏的 VS Code 实例, 并确认清零(防止 CDP 串到旧窗口)
-    killByCmdlineMarker('moyu-e2e-');
+    killByCmdlineMarker('txtreader-e2e-');
     await expect
-      .poll(() => countByCmdlineMarker('moyu-e2e-'), { timeout: 15_000 })
+      .poll(() => countByCmdlineMarker('txtreader-e2e-'), { timeout: 15_000 })
       .toBe(0);
 
-    const novelDir = fs.mkdtempSync(path.join(os.tmpdir(), 'moyu-novel-'));
+    const novelDir = fs.mkdtempSync(path.join(os.tmpdir(), 'txtreader-novel-'));
     novelPath = path.join(novelDir, 'novel.txt');
     fs.writeFileSync(novelPath, NOVEL, 'utf8');
 
@@ -243,22 +243,22 @@ test.describe('TXT 阅读器 E2E', () => {
       userDataDir,
       'User',
       'globalStorage',
-      'take-a-rest-dev.moyu-reader',
+      'take-a-rest-dev.txt-reader',
       'backups',
     );
 
-    // 预置阅读配置: 验证插件把 moyu.* 配置同步为 [moyu-txt] 语言级编辑器设置
+    // 预置阅读配置: 验证插件把 txtreader.* 配置同步为 [txt-reader] 语言级编辑器设置
     const userDir = path.join(userDataDir, 'User');
     fs.mkdirSync(userDir, { recursive: true });
     fs.writeFileSync(
       path.join(userDir, 'settings.json'),
       JSON.stringify(
         {
-          'moyu.reading.fontSize': 24,
-          'moyu.reading.lineHeight': 2.4,
-          'moyu.highlight.dialogueStyle': 'bold',
-          'moyu.dialogue.ai.baseUrl': `http://127.0.0.1:${mockAI.port}`,
-          'moyu.dialogue.ai.apiKey': 'test-key',
+          'txtreader.reading.fontSize': 24,
+          'txtreader.reading.lineHeight': 2.4,
+          'txtreader.highlight.dialogueStyle': 'bold',
+          'txtreader.dialogue.ai.baseUrl': `http://127.0.0.1:${mockAI.port}`,
+          'txtreader.dialogue.ai.apiKey': 'test-key',
         },
         null,
         2,
@@ -294,10 +294,10 @@ test.describe('TXT 阅读器 E2E', () => {
     browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
     page = await waitForWorkbenchPage(browser);
     await page.waitForLoadState('domcontentloaded');
-    // 扩展宿主 console 会转发到 workbench 控制台, 收集 [moyu] 日志辅助诊断
+    // 扩展宿主 console 会转发到 workbench 控制台, 收集 [txtreader] 日志辅助诊断
     page.on('console', (msg) => {
       const t = msg.text();
-      if (t.includes('[moyu]')) {
+      if (t.includes('[txtreader]')) {
         console.log(`[EXT] ${t.slice(0, 200)}`);
       }
     });
@@ -323,7 +323,7 @@ test.describe('TXT 阅读器 E2E', () => {
       .first();
     await expect(firstLine).toBeVisible({ timeout: 60_000 });
 
-    // 状态栏语言模式 = TXT 阅读（.txt 已被 moyu-txt 语言接管）
+    // 状态栏语言模式 = TXT 阅读（.txt 已被 txt-reader 语言接管）
     const langItem = page
       .locator('.statusbar-item')
       .filter({ hasText: /TXT 阅读|Moyu Text/ })
@@ -360,16 +360,16 @@ test.describe('TXT 阅读器 E2E', () => {
     await page.screenshot({ path: 'test-results/01-txt-highlighted.png' });
   });
 
-  test('2. 阅读设置: moyu.* 配置自动应用到 moyu-txt 语言', async () => {
+  test('2. 阅读设置: txtreader.* 配置自动应用到 txt-reader 语言', async () => {
     const settingsPath = path.join(userDataDir, 'User', 'settings.json');
 
-    // 插件激活时应把 moyu.reading.* 同步为 [moyu-txt] 语言级 editor 设置
+    // 插件激活时应把 txtreader.reading.* 同步为 [txt-reader] 语言级 editor 设置
     await expect
       .poll(
         () => {
           try {
             const s = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-            const lang = s['[moyu-txt]'];
+            const lang = s['[txt-reader]'];
             return lang
               ? {
                   fontSize: lang['editor.fontSize'],
@@ -459,7 +459,7 @@ test.describe('TXT 阅读器 E2E', () => {
     const readDialogueSetting = () => {
       try {
         return JSON.parse(fs.readFileSync(settingsPath, 'utf8'))[
-          'moyu.highlight.dialogueStyle'
+          'txtreader.highlight.dialogueStyle'
         ];
       } catch {
         return null;
@@ -587,7 +587,7 @@ test.describe('TXT 阅读器 E2E', () => {
       userDataDir,
       'User',
       'globalStorage',
-      'take-a-rest-dev.moyu-reader',
+      'take-a-rest-dev.txt-reader',
       'speakers',
     );
     await expect
@@ -606,8 +606,8 @@ test.describe('TXT 阅读器 E2E', () => {
     // 切到 OpenAI 兼容模式(外部改写 settings.json, VS Code 会热加载)
     const settingsPath = path.join(userDataDir, 'User', 'settings.json');
     const s = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-    s['moyu.dialogue.ai.provider'] = 'openai';
-    s['moyu.dialogue.ai.baseUrl'] = `http://127.0.0.1:${mockAI.port}`;
+    s['txtreader.dialogue.ai.provider'] = 'openai';
+    s['txtreader.dialogue.ai.baseUrl'] = `http://127.0.0.1:${mockAI.port}`;
     fs.writeFileSync(settingsPath, JSON.stringify(s, null, 2), 'utf8');
 
     // 配置热加载有延迟: 重试执行命令直到请求落到 /v1/chat/completions
@@ -648,9 +648,9 @@ test.describe('TXT 阅读器 E2E', () => {
   test('8. AI 识别说话人: DeepSeek 官方预设(零配置)', async () => {
     const settingsPath = path.join(userDataDir, 'User', 'settings.json');
     const s = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-    s['moyu.dialogue.ai.provider'] = 'deepseek';
-    s['moyu.dialogue.ai.baseUrl'] = `http://127.0.0.1:${mockAI.port}`;
-    s['moyu.dialogue.ai.model'] = '';
+    s['txtreader.dialogue.ai.provider'] = 'deepseek';
+    s['txtreader.dialogue.ai.baseUrl'] = `http://127.0.0.1:${mockAI.port}`;
+    s['txtreader.dialogue.ai.model'] = '';
     fs.writeFileSync(settingsPath, JSON.stringify(s, null, 2), 'utf8');
 
     // 配置热加载有延迟: 重试直到请求携带 deepseek-chat 模型名

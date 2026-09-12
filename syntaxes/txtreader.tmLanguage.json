@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
-  "name": "Moyu Text",
-  "scopeName": "text.moyu",
+  "name": "TXT Reader",
+  "scopeName": "source.txtreader",
   "patterns": [
     { "include": "#comments" },
     { "include": "#strings" },
@@ -13,15 +13,15 @@
     "comments": {
       "patterns": [
         {
-          "name": "keyword.control.directive.moyu",
+          "name": "keyword.control.directive.txtreader",
           "match": "^[ \\t]*#[ \\t]*(include|define|pragma|ifdef|ifndef|endif|undef|error|import)(?![0-9A-Za-z_])"
         },
         {
-          "name": "comment.line.moyu",
+          "name": "comment.line.txtreader",
           "match": "^[ \\t]*(//|#|--|;|%%|REM(?![0-9A-Za-z_])).*$"
         },
         {
-          "name": "comment.block.moyu",
+          "name": "comment.block.txtreader",
           "begin": "/\\*",
           "end": "\\*/"
         }
@@ -30,38 +30,38 @@
     "strings": {
       "patterns": [
         {
-          "name": "string.quoted.triple.moyu",
+          "name": "string.quoted.triple.txtreader",
           "begin": "(\"\"\"|''')",
           "end": "\\1"
         },
         {
-          "name": "string.quoted.double.moyu",
+          "name": "string.quoted.double.txtreader",
           "begin": "\"",
           "end": "\"",
           "patterns": [
             {
-              "name": "constant.character.escape.moyu",
+              "name": "constant.character.escape.txtreader",
               "match": "\\\\."
             }
           ]
         },
         {
-          "name": "string.quoted.single.moyu",
+          "name": "string.quoted.single.txtreader",
           "begin": "'",
           "end": "'",
           "patterns": [
             {
-              "name": "constant.character.escape.moyu",
+              "name": "constant.character.escape.txtreader",
               "match": "\\\\."
             }
           ]
         },
         {
-          "name": "dialogue.quote.moyu",
+          "name": "dialogue.quote.txtreader",
           "match": "“([^”\\n]*)(”|$)"
         },
         {
-          "name": "dialogue.quote.moyu",
+          "name": "dialogue.quote.txtreader",
           "match": "「([^」\\n]*)(」|$)"
         }
       ]
@@ -69,7 +69,7 @@
     "numbers": {
       "patterns": [
         {
-          "name": "constant.numeric.moyu",
+          "name": "constant.numeric.txtreader",
           "match": "(?<![0-9A-Za-z_])(0x[0-9a-fA-F]+|\\d+(\\.\\d+)?([eE][+-]?\\d+)?)(?![0-9A-Za-z_])"
         }
       ]
@@ -77,19 +77,19 @@
     "prose": {
       "patterns": [
         {
-          "name": "entity.name.section.moyu",
+          "name": "entity.name.section.txtreader",
           "match": "^[ \\t]*(第.{0,12}[章节卷部回]|Chapter[ \\t]+\\d+|序章|楔子|尾声|番外|后记).*$"
         },
         {
-          "name": "string.link.moyu",
+          "name": "string.link.txtreader",
           "match": "https?://[^\\s，。；！？]+"
         },
         {
-          "name": "punctuation.terminator.moyu",
+          "name": "punctuation.terminator.txtreader",
           "match": "[。！？!?]"
         },
         {
-          "name": "punctuation.separator.moyu",
+          "name": "punctuation.separator.txtreader",
           "match": "[，、；：,;:…—]"
         }
       ]
@@ -97,35 +97,35 @@
     "code": {
       "patterns": [
         {
-          "name": "keyword.control.moyu",
+          "name": "keyword.control.txtreader",
           "match": "(?i)(?<![0-9A-Za-z_])(if|else|elif|for|while|do|return|break|continue|switch|case|default|try|except|catch|finally|throw|raise|with|async|await|yield|pass|new|delete|goto|then)(?![0-9A-Za-z_])"
         },
         {
-          "name": "storage.type.moyu",
+          "name": "storage.type.txtreader",
           "match": "(?i)(?<![0-9A-Za-z_])(int|float|double|char|bool|boolean|string|void|unsigned|signed|long|short|auto|var|let|const|static|size_t)(?![0-9A-Za-z_])"
         },
         {
-          "name": "keyword.other.moyu",
+          "name": "keyword.other.txtreader",
           "match": "(?i)(?<![0-9A-Za-z_])(class|def|function|func|fn|struct|enum|interface|trait|implements|extends|import|from|require|export|module|package|namespace|using|typedef|public|private|protected|inline|virtual|override|template|self)(?![0-9A-Za-z_])"
         },
         {
-          "name": "constant.language.moyu",
+          "name": "constant.language.txtreader",
           "match": "(?i)(?<![0-9A-Za-z_])(true|false|null|none|nil|undefined|nan|inf)(?![0-9A-Za-z_])"
         },
         {
-          "name": "support.function.builtin.moyu",
+          "name": "support.function.builtin.txtreader",
           "match": "(?i)(?<![0-9A-Za-z_])(print|printf|println|console|log|len|range|map|filter|reduce|open|read|write|main|init|process|run|start|stop|load|save|parse|format|split|join|sizeof|push_back|cout|cin|endl)(?![0-9A-Za-z_])"
         },
         {
-          "name": "meta.decorator.moyu",
+          "name": "meta.decorator.txtreader",
           "match": "^[ \\t]*@[A-Za-z_][A-Za-z0-9_]*"
         },
         {
-          "name": "entity.name.function.moyu",
+          "name": "entity.name.function.txtreader",
           "match": "[A-Za-z_\\u4e00-\\u9fa5][A-Za-z0-9_\\u4e00-\\u9fa5]*(?=[ \\t]*\\()"
         },
         {
-          "name": "variable.other.moyu",
+          "name": "variable.other.txtreader",
           "match": "(?<![0-9A-Za-z_])[a-zA-Z_][a-zA-Z0-9_]*(?![0-9A-Za-z_])"
         }
       ]

@@ -9,7 +9,7 @@ export default defineConfig({
   projects: [
     {
       name: 'vscode',
-      testMatch: 'moyu.spec.ts',
+      testMatch: 'txt-reader.spec.ts',
     },
   ],
 });

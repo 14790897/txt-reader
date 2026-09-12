@@ -8,9 +8,9 @@ const crypto = require("crypto");
 const { wrap } = require("./templates");
 const speakers = require("./speakers");
 
-const LANG_ID = "moyu-txt";
-const DISGUISED_CTX = "moyu.isDisguised";
-const THEME_LABEL = "Moyu Dark";
+const LANG_ID = "txt-reader";
+const DISGUISED_CTX = "txtreader.isDisguised";
+const THEME_LABEL = "TXT Dark";
 
 let ctx;
 let statusBar;
@@ -65,7 +65,7 @@ async function refreshStatusBar() {
   if (disguised) {
     statusBar.text = "$(eye) 伪装中";
     statusBar.tooltip = "该文件已伪装。点击紧急还原（Ctrl+Alt+X）";
-    statusBar.command = "moyu.panic";
+    statusBar.command = "txtreader.panic";
     statusBar.show();
   } else if (
     doc &&
@@ -74,7 +74,7 @@ async function refreshStatusBar() {
   ) {
     statusBar.text = "$(file-code) 代码样式";
     statusBar.tooltip = "txt 代码样式已启用，点击切换为纯文本";
-    statusBar.command = "moyu.toggleStyle";
+    statusBar.command = "txtreader.toggleStyle";
     statusBar.show();
   } else {
     statusBar.hide();
@@ -114,7 +114,7 @@ async function disguise(doc) {
   }
 
   const template = vscode.workspace
-    .getConfiguration("moyu")
+    .getConfiguration("txtreader")
     .get("template", "python");
   const wrapped = wrap(template, original);
 
@@ -222,7 +222,7 @@ async function applyTheme() {
 
 /** 可视化选择对话引号样式: 下拉选择, 选完立即生效 */
 async function pickDialogueStyle() {
-  const conf = vscode.workspace.getConfiguration("moyu");
+  const conf = vscode.workspace.getConfiguration("txtreader");
   const current = conf.get("highlight.dialogueStyle", "string");
   const options = [
     {
@@ -253,14 +253,14 @@ async function pickDialogueStyle() {
   vscode.window.showInformationMessage(`对话样式已切换为「${picked.label}」`);
 }
 
-/** 把 moyu.reading.* 同步为 [moyu-txt] 语言级编辑器设置(只影响 txt, 不碰其他语言) */
+/** 把 txtreader.reading.* 同步为 [txt-reader] 语言级编辑器设置(只影响 txt, 不碰其他语言) */
 async function applyReadingSettings(showMessage = false) {
-  const conf = vscode.workspace.getConfiguration("moyu");
+  const conf = vscode.workspace.getConfiguration("txtreader");
   const enabled = conf.get("reading.enabled", true);
   if (!enabled) {
     if (showMessage) {
       vscode.window.showInformationMessage(
-        "阅读设置未启用（moyu.reading.enabled = false）"
+        "阅读设置未启用（txtreader.reading.enabled = false）"
       );
     }
     return false;
@@ -273,7 +273,7 @@ async function applyReadingSettings(showMessage = false) {
   const editorConf = vscode.workspace.getConfiguration("editor", {
     languageId: LANG_ID,
   });
-  // 第 4 个参数 overrideInLanguage=true: 写入 [moyu-txt] 语言级覆盖, 而不是全局设置
+  // 第 4 个参数 overrideInLanguage=true: 写入 [txt-reader] 语言级覆盖, 而不是全局设置
   await editorConf.update(
     "fontSize",
     fontSize,
@@ -318,7 +318,7 @@ const SPEAKER_PALETTE = [
 
 function dialogueStyleIsBold() {
   return (
-    vscode.workspace.getConfiguration("moyu").get("highlight.dialogueStyle", "string") ===
+    vscode.workspace.getConfiguration("txtreader").get("highlight.dialogueStyle", "string") ===
     "bold"
   );
 }
@@ -343,7 +343,7 @@ function rebuildSpeakerDecorationTypes() {
 }
 
 function updateDialogueDecoration() {
-  const conf = vscode.workspace.getConfiguration("moyu");
+  const conf = vscode.workspace.getConfiguration("txtreader");
   const style = conf.get("highlight.dialogueStyle", "string");
 
   // 先用旧类型清空装饰, 再释放
@@ -457,10 +457,10 @@ async function saveCachedSpeakers(quotes, assignments, speakerNames) {
   );
 }
 
-/** 按 moyu.dialogue.speakerColors 设置自动应用(打开文件/设置变化时) */
+/** 按 txtreader.dialogue.speakerColors 设置自动应用(打开文件/设置变化时) */
 async function applySpeakerMode() {
   const mode = vscode.workspace
-    .getConfiguration("moyu")
+    .getConfiguration("txtreader")
     .get("dialogue.speakerColors", "off");
   const editor = vscode.window.activeTextEditor;
   if (!editor || editor.document.languageId !== LANG_ID) return;
@@ -492,7 +492,7 @@ async function analyzeSpeakersCommand() {
     vscode.window.showWarningMessage("请先打开一个 .txt 文件");
     return;
   }
-  const conf = vscode.workspace.getConfiguration("moyu");
+  const conf = vscode.workspace.getConfiguration("txtreader");
   const provider = conf.get("dialogue.ai.provider", "anthropic");
   const apiKey = conf.get("dialogue.ai.apiKey", "");
   let baseUrl = conf.get("dialogue.ai.baseUrl", "");
@@ -511,14 +511,14 @@ async function analyzeSpeakersCommand() {
   if (!hasKey) {
     vscode.window
       .showWarningMessage(
-        `未配置 API Key。请在设置中填写 moyu.dialogue.ai.apiKey（或设置环境变量 ${keyEnv}）`,
+        `未配置 API Key。请在设置中填写 txtreader.dialogue.ai.apiKey（或设置环境变量 ${keyEnv}）`,
         "打开设置"
       )
       .then((choice) => {
         if (choice === "打开设置") {
           vscode.commands.executeCommand(
             "workbench.action.openSettings",
-            "moyu.dialogue.ai"
+            "txtreader.dialogue.ai"
           );
         }
       });
@@ -629,28 +629,28 @@ function activate(context) {
   };
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("moyu.disguise", async () => {
+    vscode.commands.registerCommand("txtreader.disguise", async () => {
       const doc = activeDoc();
       if (doc) await disguise(doc);
     }),
-    vscode.commands.registerCommand("moyu.restore", async () => {
+    vscode.commands.registerCommand("txtreader.restore", async () => {
       const doc = activeDoc();
       if (doc) await restore(doc);
     }),
-    vscode.commands.registerCommand("moyu.panic", panic),
-    vscode.commands.registerCommand("moyu.toggleStyle", toggleStyle),
-    vscode.commands.registerCommand("moyu.applyTheme", applyTheme),
-    vscode.commands.registerCommand("moyu.applyReadingSettings", () =>
+    vscode.commands.registerCommand("txtreader.panic", panic),
+    vscode.commands.registerCommand("txtreader.toggleStyle", toggleStyle),
+    vscode.commands.registerCommand("txtreader.applyTheme", applyTheme),
+    vscode.commands.registerCommand("txtreader.applyReadingSettings", () =>
       applyReadingSettings(true)
     ),
-    vscode.commands.registerCommand("moyu.pickDialogueStyle", pickDialogueStyle),
-    vscode.commands.registerCommand("moyu.cycleDialogueColors", cycleDialogueColors),
-    vscode.commands.registerCommand("moyu.analyzeSpeakers", analyzeSpeakersCommand),
+    vscode.commands.registerCommand("txtreader.pickDialogueStyle", pickDialogueStyle),
+    vscode.commands.registerCommand("txtreader.cycleDialogueColors", cycleDialogueColors),
+    vscode.commands.registerCommand("txtreader.analyzeSpeakers", analyzeSpeakersCommand),
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration("moyu.reading")) {
+      if (e.affectsConfiguration("txtreader.reading")) {
         applyReadingSettings().catch(() => {});
       }
-      if (e.affectsConfiguration("moyu.highlight")) {
+      if (e.affectsConfiguration("txtreader.highlight")) {
         updateDialogueDecoration();
       }
     }),
@@ -668,7 +668,7 @@ function activate(context) {
       updateDialogueDecoration();
     }),
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration("moyu.dialogue")) {
+      if (e.affectsConfiguration("txtreader.dialogue")) {
         applySpeakerMode().catch(() => {});
       }
     }),
@@ -679,7 +679,7 @@ function activate(context) {
   );
 
   applyReadingSettings().catch((err) =>
-    console.error("[moyu] applyReadingSettings failed:", err)
+    console.error("[txtreader] applyReadingSettings failed:", err)
   );
   updateDialogueDecoration();
   applySpeakerMode().catch(() => {});
