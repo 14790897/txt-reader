@@ -24,8 +24,24 @@ function extractQuotes(text) {
   return quotes;
 }
 
-function buildPrompt(quotes) {
-  const lines = quotes.map(
+function buildPrompt(quotes, fullText) {
+  const lines = quotes.map((q) => `${q.index}. 对话: ${q.text}`);
+  if (fullText) {
+    // 全文上下文: 模型支持 1M 上下文, 直接送全文, 说话人判断最准
+    return [
+      "你是中文小说对话分析助手。下面是小说全文和按顺序提取的对话列表。",
+      "请根据全文判断每句对话是谁说的，用说话人的姓名或称呼表示（如“李四”“王五”）。",
+      "同一个说话人在整个文档中必须使用完全相同的名字。",
+      "如果上下文无法判断说话人，填“未知”。",
+      "",
+      "【小说全文】",
+      fullText,
+      "",
+      "【对话列表】",
+      ...lines,
+    ].join("\n");
+  }
+  const linesWithCtx = quotes.map(
     (q) => `${q.index}. 对话: ${q.text}\n   上文: ${q.context}`
   );
   return [
@@ -34,7 +50,7 @@ function buildPrompt(quotes) {
     "同一个说话人在整个文档中必须使用完全相同的名字。",
     "如果上下文无法判断说话人，填“未知”。",
     "",
-    ...lines,
+    ...linesWithCtx,
   ].join("\n");
 }
 
@@ -64,7 +80,7 @@ function parseSpeakers(raw, quoteCount) {
 }
 
 /** 调用 Claude 分析说话人 (structured outputs 返回 JSON) */
-async function analyzeSpeakers({ apiKey, baseUrl, model }, quotes) {
+async function analyzeSpeakers({ apiKey, baseUrl, model }, quotes, fullText) {
   const opts = { timeout: 120_000, maxRetries: 2 };
   if (apiKey) opts.apiKey = apiKey;
   if (baseUrl) opts.baseURL = baseUrl;
@@ -102,7 +118,7 @@ async function analyzeSpeakers({ apiKey, baseUrl, model }, quotes) {
       },
     },
     system: "你只输出符合 schema 的 JSON，不输出任何其他内容。",
-    messages: [{ role: "user", content: buildPrompt(quotes) }],
+    messages: [{ role: "user", content: buildPrompt(quotes, fullText) }],
   });
 
   const raw = response.content
@@ -116,7 +132,7 @@ async function analyzeSpeakers({ apiKey, baseUrl, model }, quotes) {
  * 调用 OpenAI 兼容接口(/v1/chat/completions)分析说话人。
  * 适用于 OpenAI、DeepSeek、Kimi、通义、各类中转代理等 OpenAI 格式端点。
  */
-async function analyzeSpeakersOpenAI({ apiKey, baseUrl, model }, quotes) {
+async function analyzeSpeakersOpenAI({ apiKey, baseUrl, model }, quotes, fullText) {
   const key = apiKey || process.env.OPENAI_API_KEY;
   if (!key) {
     throw new Error(
@@ -150,7 +166,7 @@ async function analyzeSpeakersOpenAI({ apiKey, baseUrl, model }, quotes) {
           content:
             '你只输出 JSON，格式 {"speakers":[{"index":0,"speaker":"名字"}]}，不输出任何其他内容。',
         },
-        { role: "user", content: buildPrompt(quotes) },
+        { role: "user", content: buildPrompt(quotes, fullText) },
       ],
     }),
     signal: AbortSignal.timeout(120_000),

@@ -254,6 +254,7 @@ test.describe('TXT 阅读器 E2E', () => {
       path.join(userDir, 'settings.json'),
       JSON.stringify(
         {
+          'workbench.colorTheme': 'Default Dark Modern',
           'txtreader.reading.fontSize': 24,
           'txtreader.reading.lineHeight': 2.4,
           'txtreader.highlight.dialogueStyle': 'bold',
@@ -571,6 +572,8 @@ test.describe('TXT 阅读器 E2E', () => {
     const req = mockAI.lastRequest();
     expect(req.body).toContain('今天也要好好读书');
     expect(req.body).toContain('来了');
+    // 全文上下文: 引号之外的正文行也应出现在请求里
+    expect(req.body).toContain('链接在此');
 
     // 李四(第1段) -> 色1, 王五(第2段) -> 色2
     await expect
@@ -722,6 +725,34 @@ test.describe('TXT 阅读器 E2E', () => {
     await expect
       .poll(readTheme, { timeout: 15_000 })
       .not.toBeNull();
+
+    // 先执行循环配色(本用例自给自足, 不依赖其他用例的配色状态)
+    await page.keyboard.press('Control+Shift+P');
+    await page.keyboard.type('Cycle');
+    const cycleEntry = page
+      .locator('.quick-input-widget .monaco-list-row')
+      .filter({ hasText: '循环配色对话' })
+      .first();
+    await expect(cycleEntry).toBeVisible({ timeout: 10_000 });
+    await cycleEntry.click();
+
+    // 亮色主题下调色板自动切换为深色系(白底可读)
+    const s = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    s['workbench.colorTheme'] = 'Light 2026';
+    fs.writeFileSync(settingsPath, JSON.stringify(s, null, 2), 'utf8');
+    await expect
+      .poll(() => renderedSpanColors(page, '今天也要好好读书'), {
+        timeout: 15_000,
+      })
+      .toContain('rgb(0, 105, 92)');
+    // 恢复深色主题, 供后续用例使用
+    s['workbench.colorTheme'] = 'Default Dark Modern';
+    fs.writeFileSync(settingsPath, JSON.stringify(s, null, 2), 'utf8');
+    await expect
+      .poll(() => renderedSpanColors(page, '今天也要好好读书'), {
+        timeout: 15_000,
+      })
+      .toContain('rgb(78, 201, 176)');
   });
 
   test('10. 无 Key 时命令内引导配置: 选择接口+输入Key+直接分析', async () => {

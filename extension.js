@@ -336,10 +336,22 @@ let dialogueDecorationType = undefined;
 const speakerDecorationTypes = []; // { type, color }
 let speakerAssignments = []; // 每段对话引号的配色索引, null = 未分配
 
-const SPEAKER_PALETTE = [
+const DARK_SPEAKER_PALETTE = [
   "#4EC9B0", "#DCDCAA", "#569CD6", "#C586C0",
   "#B5CEA8", "#D7BA7D", "#9CDCFE", "#F48771",
 ];
+
+// 亮色主题专用: 深色高对比配色(白底上清晰可读)
+const LIGHT_SPEAKER_PALETTE = [
+  "#00695C", "#7B1FA2", "#B45309", "#1450A0",
+  "#9A3412", "#4D7C0F", "#8E24AA", "#B91C1C",
+];
+
+function speakerPalette() {
+  const isLight =
+    vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Light;
+  return isLight ? LIGHT_SPEAKER_PALETTE : DARK_SPEAKER_PALETTE;
+}
 
 function dialogueStyleIsBold() {
   return (
@@ -351,13 +363,14 @@ function dialogueStyleIsBold() {
 function disposeSpeakerDecorations() {
   for (const d of speakerDecorationTypes) d.type.dispose();
   speakerDecorationTypes.length = 0;
-  speakerAssignments = [];
+  // 注意: 只释放装饰类型, 保留 speakerAssignments(配色分配)与引号数量解耦,
+  // 这样主题/样式切换重建类型后, 已有的说话人配色不丢
 }
 
 function rebuildSpeakerDecorationTypes() {
   disposeSpeakerDecorations();
   const bold = dialogueStyleIsBold();
-  for (const color of SPEAKER_PALETTE) {
+  for (const color of speakerPalette()) {
     const opts = { color };
     if (bold) opts.fontWeight = "bold";
     speakerDecorationTypes.push({
@@ -445,7 +458,7 @@ async function cycleDialogueColors() {
     vscode.window.showInformationMessage("没有找到对话引号（“”「」）");
     return;
   }
-  speakerAssignments = ranges.map((_, i) => i % SPEAKER_PALETTE.length);
+  speakerAssignments = ranges.map((_, i) => i % speakerPalette().length);
   refreshDialogueDecorations();
   vscode.window.showInformationMessage(
     `已为 ${ranges.length} 段对话应用循环配色（每条不同颜色）`
@@ -496,7 +509,7 @@ async function applySpeakerMode() {
   }
   const quotes = speakers.extractQuotes(editor.document.getText());
   if (mode === "cycle") {
-    speakerAssignments = quotes.map((_, i) => i % SPEAKER_PALETTE.length);
+    speakerAssignments = quotes.map((_, i) => i % speakerPalette().length);
     refreshDialogueDecorations();
     return;
   }
@@ -609,6 +622,18 @@ async function analyzeSpeakersCommand() {
     return;
   }
 
+  // 全文上下文: 模型 1M 上下文足够容纳整篇, 直接发全文判断最准;
+  // 超大文档(>40 万字符)回退为每段对话 80 字片段上下文, 并明确告知
+  const fullTextRaw = editor.document.getText();
+  const FULL_CONTEXT_LIMIT = 400_000;
+  let contextText = fullTextRaw;
+  if (fullTextRaw.length > FULL_CONTEXT_LIMIT) {
+    contextText = null;
+    vscode.window.showWarningMessage(
+      `文档过大(${(fullTextRaw.length / 1000).toFixed(0)}K 字符)，AI 分析改用片段上下文`
+    );
+  }
+
   let result;
   try {
     await vscode.window.withProgress(
@@ -620,9 +645,14 @@ async function analyzeSpeakersCommand() {
         result = isOpenAIFamily
           ? await speakers.analyzeSpeakersOpenAI(
               { apiKey, baseUrl, model },
-              quotes
+              quotes,
+              contextText
             )
-          : await speakers.analyzeSpeakers({ apiKey, baseUrl, model }, quotes);
+          : await speakers.analyzeSpeakers(
+              { apiKey, baseUrl, model },
+              quotes,
+              contextText
+            );
       }
     );
   } catch (err) {
