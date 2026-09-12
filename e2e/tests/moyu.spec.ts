@@ -175,7 +175,7 @@ test.describe('摸鱼阅读器 E2E', () => {
       userDataDir,
       'User',
       'globalStorage',
-      'moyu-dev.moyu-reader',
+      'take-a-rest-dev.moyu-reader',
       'backups',
     );
 
