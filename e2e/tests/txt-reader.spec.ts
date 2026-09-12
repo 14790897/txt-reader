@@ -687,7 +687,44 @@ test.describe('TXT 阅读器 E2E', () => {
       .toContain('rgb(220, 220, 170)');
   });
 
-  test('9. Ctrl+Alt+D 伪装成代码并生成备份', async () => {
+  test('9. 主题切换: TXT Dark 应用后可一键恢复原主题', async () => {
+    const settingsPath = path.join(userDataDir, 'User', 'settings.json');
+    const readTheme = () => {
+      try {
+        return JSON.parse(fs.readFileSync(settingsPath, 'utf8'))[
+          'workbench.colorTheme'
+        ];
+      } catch {
+        return null;
+      }
+    };
+    const invokeThemeCommand = async () => {
+      await page.keyboard.press('Control+Shift+P');
+      await page.keyboard.type('Dark');
+      const entry = page
+        .locator('.quick-input-widget .monaco-list-row')
+        .filter({ hasText: '切换 TXT Dark 主题' })
+        .first();
+      await expect(entry).toBeVisible({ timeout: 10_000 });
+      // 直接点击目标行(回车会选中高亮行, 高亮的可能是其他命令)
+      await entry.click();
+    };
+
+    // 第一次执行: 应用 TXT Dark
+    await invokeThemeCommand();
+    await expect.poll(readTheme, { timeout: 15_000 }).toBe('TXT Dark');
+
+    // 第二次执行: 恢复之前的主题(不再是 TXT Dark)
+    await invokeThemeCommand();
+    await expect
+      .poll(readTheme, { timeout: 15_000 })
+      .not.toBe('TXT Dark');
+    await expect
+      .poll(readTheme, { timeout: 15_000 })
+      .not.toBeNull();
+  });
+
+  test('10. Ctrl+Alt+D 伪装成代码并生成备份', async () => {
     // 聚焦编辑器后按快捷键
     await page.locator('.monaco-editor .view-lines').first().click();
     await page.keyboard.press('Control+Alt+D');
@@ -719,7 +756,7 @@ test.describe('TXT 阅读器 E2E', () => {
     await page.screenshot({ path: 'test-results/02-disguised.png' });
   });
 
-  test('10. Ctrl+Alt+X 老板键：还原原文+保存+切纯文本', async () => {
+  test('11. Ctrl+Alt+X 老板键：还原原文+保存+切纯文本', async () => {
     await page.locator('.monaco-editor .view-lines').first().click();
     await page.keyboard.press('Control+Alt+X');
 

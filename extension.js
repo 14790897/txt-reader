@@ -213,11 +213,36 @@ async function toggleStyle() {
   await refreshStatusBar();
 }
 
-async function applyTheme() {
-  await vscode.workspace
-    .getConfiguration()
-    .update("workbench.colorTheme", THEME_LABEL, vscode.ConfigurationTarget.Global);
-  vscode.window.showInformationMessage(`已切换到「${THEME_LABEL}」主题`);
+/** 切换 TXT Dark 主题: 应用后再次执行可恢复之前的主题 */
+async function toggleTheme() {
+  const conf = vscode.workspace.getConfiguration();
+  const current = conf.get("workbench.colorTheme");
+  if (current === THEME_LABEL) {
+    // 已是 TXT Dark: 恢复之前记住的主题
+    const prev = ctx.globalState.get("previousColorTheme", "");
+    if (prev && prev !== THEME_LABEL) {
+      await conf.update(
+        "workbench.colorTheme",
+        prev,
+        vscode.ConfigurationTarget.Global
+      );
+      vscode.window.showInformationMessage(`已恢复主题「${prev}」`);
+    } else {
+      vscode.window.showInformationMessage(
+        "没有记录到之前的主题，可在 文件 → 首选项 → 主题 → 颜色主题 手动切换"
+      );
+    }
+    return;
+  }
+  await ctx.globalState.update("previousColorTheme", current);
+  await conf.update(
+    "workbench.colorTheme",
+    THEME_LABEL,
+    vscode.ConfigurationTarget.Global
+  );
+  vscode.window.showInformationMessage(
+    `已切换到「${THEME_LABEL}」。再次执行本命令可恢复「${current}」`
+  );
 }
 
 /** 可视化选择对话引号样式: 下拉选择, 选完立即生效 */
@@ -639,7 +664,7 @@ function activate(context) {
     }),
     vscode.commands.registerCommand("txtreader.panic", panic),
     vscode.commands.registerCommand("txtreader.toggleStyle", toggleStyle),
-    vscode.commands.registerCommand("txtreader.applyTheme", applyTheme),
+    vscode.commands.registerCommand("txtreader.applyTheme", toggleTheme),
     vscode.commands.registerCommand("txtreader.applyReadingSettings", () =>
       applyReadingSettings(true)
     ),
