@@ -1,0 +1,44 @@
+name: Publish Extension
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    name: 发布到 VS Code 市场
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 校验版本号与 tag 一致
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          VER=$(node -p "require('./package.json').version")
+          TAG=${GITHUB_REF_NAME#v}
+          if [ "$VER" != "$TAG" ]; then
+            echo "错误: package.json 版本 ($VER) 与 tag ($TAG) 不一致"
+            exit 1
+          fi
+          echo "版本校验通过: $VER"
+
+      - name: 打包验证 (vsce package)
+        run: npx -y @vscode/vsce@latest package --skip-license
+
+      - name: 发布到 VS Code 市场
+        run: npx -y @vscode/vsce@latest publish -p "$VSCE_PAT" --skip-duplicate
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+      - name: 创建 GitHub Release (附 VSIX)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          gh release create "$GITHUB_REF_NAME" moyu-reader-*.vsix --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
