@@ -622,15 +622,17 @@ async function analyzeSpeakersCommand() {
     return;
   }
 
-  // 全文上下文: 模型 1M 上下文足够容纳整篇, 直接发全文判断最准;
-  // 超大文档(>40 万字符)回退为每段对话 80 字片段上下文, 并明确告知
+  // 全文上下文: 1M 上下文模型(Claude/DeepSeek 等)可直接容纳整篇, 判断最准;
+  // 超过 maxContextChars(默认 70 万字符, 0=不限制)回退为片段上下文并明确告知
   const fullTextRaw = editor.document.getText();
-  const FULL_CONTEXT_LIMIT = 400_000;
+  const contextLimit = Number(
+    conf.get("dialogue.ai.maxContextChars", 700000)
+  );
   let contextText = fullTextRaw;
-  if (fullTextRaw.length > FULL_CONTEXT_LIMIT) {
+  if (contextLimit > 0 && fullTextRaw.length > contextLimit) {
     contextText = null;
     vscode.window.showWarningMessage(
-      `文档过大(${(fullTextRaw.length / 1000).toFixed(0)}K 字符)，AI 分析改用片段上下文`
+      `文档过大(${(fullTextRaw.length / 1000).toFixed(0)}K 字符，上限 ${(contextLimit / 1000).toFixed(0)}K)，AI 分析改用片段上下文`
     );
   }
 

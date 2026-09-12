@@ -2,7 +2,7 @@
   "name": "txt-beautifier",
   "displayName": "TXT 美化阅读器 (TXT Beautify Reader)",
   "description": "txt 阅读器：代码风格语法高亮、舒适阅读排版、按说话人对话配色，支持 AI 识别说话人与一键还原原文。",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "publisher": "take-a-rest-dev",
   "icon": "icon.png",
   "repository": {
@@ -298,6 +298,12 @@
           "type": "string",
           "default": "",
           "description": "API 地址（留空使用官方地址；使用代理/中继时填写）"
+        },
+        "txtreader.dialogue.ai.maxContextChars": {
+          "type": "number",
+          "default": 700000,
+          "minimum": 0,
+          "description": "AI 分析发送全文的字符上限（DeepSeek/Claude 等 1M 上下文模型可容纳约 70 万中文字符；0 表示不限制；超限自动回退为片段上下文并提示）"
         }
       }
     }
