@@ -822,7 +822,57 @@ test.describe('TXT 阅读器 E2E', () => {
       .toContain('rgb(78, 201, 176)');
   });
 
-  test('11. AI 识别说话人: 真实 DeepSeek API 集成验证', async () => {
+  test('11. 自定义对话配色: customColors 替代内置调色板', async () => {
+    const settingsPath = path.join(userDataDir, 'User', 'settings.json');
+    const writeCustom = (colors: string[]) => {
+      const s = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+      s['txtreader.dialogue.customColors'] = colors;
+      fs.writeFileSync(settingsPath, JSON.stringify(s, null, 2), 'utf8');
+    };
+    const runCycle = async () => {
+      await page.keyboard.press('Control+Shift+P');
+      await page.keyboard.type('Cycle');
+      const entry = page
+        .locator('.quick-input-widget .monaco-list-row')
+        .filter({ hasText: '循环配色对话' })
+        .first();
+      await expect(entry).toBeVisible({ timeout: 10_000 });
+      await entry.click();
+    };
+
+    // 设置自定义色(红/绿), 配置热加载有延迟 -> 重试执行直到生效
+    writeCustom(['#FF0000', '#00FF00']);
+    for (let attempt = 0; attempt < 6; attempt++) {
+      if (attempt > 0) await page.waitForTimeout(2000);
+      await runCycle();
+      const colors = await renderedSpanColors(page, '今天也要好好读书');
+      if (colors.some((c) => c === 'rgb(255, 0, 0)')) break;
+    }
+    await expect
+      .poll(() => renderedSpanColors(page, '今天也要好好读书'), {
+        timeout: 15_000,
+      })
+      .toContain('rgb(255, 0, 0)');
+    await expect
+      .poll(() => renderedSpanColors(page, '来了'), { timeout: 15_000 })
+      .toContain('rgb(0, 255, 0)');
+
+    // 清理: 恢复内置调色板(深色主题第 1 色)
+    writeCustom([]);
+    for (let attempt = 0; attempt < 6; attempt++) {
+      if (attempt > 0) await page.waitForTimeout(2000);
+      await runCycle();
+      const colors = await renderedSpanColors(page, '今天也要好好读书');
+      if (colors.some((c) => c === 'rgb(78, 201, 176)')) break;
+    }
+    await expect
+      .poll(() => renderedSpanColors(page, '今天也要好好读书'), {
+        timeout: 15_000,
+      })
+      .toContain('rgb(78, 201, 176)');
+  });
+
+  test('12. AI 识别说话人: 真实 DeepSeek API 集成验证', async () => {
     test.skip(
       !process.env.DEEPSEEK_API_KEY,
       '需要 DEEPSEEK_API_KEY 环境变量(本地真实 API 集成验证, CI 跳过)',
@@ -898,7 +948,7 @@ test.describe('TXT 阅读器 E2E', () => {
       .toBeGreaterThanOrEqual(1);
   });
 
-  test('12. Ctrl+Alt+D 伪装成代码并生成备份', async () => {
+  test('13. Ctrl+Alt+D 伪装成代码并生成备份', async () => {
     // 聚焦编辑器后按快捷键
     await page.locator('.monaco-editor .view-lines').first().click();
     await page.keyboard.press('Control+Alt+D');
@@ -930,7 +980,7 @@ test.describe('TXT 阅读器 E2E', () => {
     await page.screenshot({ path: 'test-results/02-disguised.png' });
   });
 
-  test('13. Ctrl+Alt+X 老板键：还原原文+保存+切纯文本', async () => {
+  test('14. Ctrl+Alt+X 老板键：还原原文+保存+切纯文本', async () => {
     await page.locator('.monaco-editor .view-lines').first().click();
     await page.keyboard.press('Control+Alt+X');
 

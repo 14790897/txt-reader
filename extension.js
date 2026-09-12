@@ -348,6 +348,18 @@ const LIGHT_SPEAKER_PALETTE = [
 ];
 
 function speakerPalette() {
+  // 自定义配色优先: 非空且合法则替代内置调色板
+  const custom = vscode.workspace
+    .getConfiguration("txtreader")
+    .get("dialogue.customColors", []);
+  if (Array.isArray(custom)) {
+    const valid = custom
+      .filter((c) => typeof c === "string")
+      .map((c) => c.trim())
+      .filter((c) => /^#?[0-9a-fA-F]{6}$/.test(c))
+      .map((c) => (c.startsWith("#") ? c : `#${c}`).toUpperCase());
+    if (valid.length) return valid;
+  }
   const isLight =
     vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Light;
   return isLight ? LIGHT_SPEAKER_PALETTE : DARK_SPEAKER_PALETTE;
@@ -458,6 +470,8 @@ async function cycleDialogueColors() {
     vscode.window.showInformationMessage("没有找到对话引号（“”「」）");
     return;
   }
+  // 自定义颜色可能在设置里刚改过: 重建装饰类型再用当前调色板分配
+  rebuildSpeakerDecorationTypes();
   speakerAssignments = ranges.map((_, i) => i % speakerPalette().length);
   refreshDialogueDecorations();
   vscode.window.showInformationMessage(
@@ -509,6 +523,7 @@ async function applySpeakerMode() {
   }
   const quotes = speakers.extractQuotes(editor.document.getText());
   if (mode === "cycle") {
+    rebuildSpeakerDecorationTypes();
     speakerAssignments = quotes.map((_, i) => i % speakerPalette().length);
     refreshDialogueDecorations();
     return;
