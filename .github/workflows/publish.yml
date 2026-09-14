@@ -36,8 +36,18 @@ jobs:
       - name: 打包验证 (vsce package)
         run: npx -y @vscode/vsce@latest package --skip-license
 
-      - name: 发布到 VS Code 市场
-        run: npx -y @vscode/vsce@latest publish -p "$VSCE_PAT" --skip-duplicate
+      - name: 发布到 VS Code 市场 (带重试)
+        run: |
+          for i in 1 2 3; do
+            echo "=== publish attempt $i ==="
+            if npx -y @vscode/vsce@latest publish -p "$VSCE_PAT" --skip-duplicate; then
+              exit 0
+            fi
+            echo "attempt $i failed, retrying in 60s..."
+            sleep 60
+          done
+          echo "publish failed after 3 attempts"
+          exit 1
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
 
