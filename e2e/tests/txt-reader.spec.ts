@@ -203,6 +203,19 @@ async function renderedSpanColors(page: Page, text: string): Promise<string[]> {
   return [...new Set(spans.filter((s) => s.text.includes(text)).map((s) => s.color))];
 }
 
+/** 反复按 Esc 直到所有 quick input 关闭(ignoreFocusOut 的向导需要显式关闭) */
+async function closeQuickInputs(page: Page): Promise<void> {
+  for (let i = 0; i < 5; i++) {
+    const open = await page
+      .locator('.quick-input-widget')
+      .evaluateAll((els) => els.some((e) => e.getClientRects().length > 0))
+      .catch(() => true);
+    if (!open) return;
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+  }
+}
+
 test.describe('TXT 阅读器 E2E', () => {
   let vscodeProcess: ChildProcess | null = null;
   let browser: Browser | null = null;
@@ -872,7 +885,84 @@ test.describe('TXT 阅读器 E2E', () => {
       .toContain('rgb(78, 201, 176)');
   });
 
-  test('12. AI 识别说话人: 真实 DeepSeek API 集成验证', async () => {
+  test('12. 配色设置向导: 命令内添加/清空自定义颜色', async () => {
+    const settingsPath = path.join(userDataDir, 'User', 'settings.json');
+    const readCustom = () => {
+      try {
+        return (
+          JSON.parse(fs.readFileSync(settingsPath, 'utf8'))[
+            'txtreader.dialogue.customColors'
+          ] || []
+        );
+      } catch {
+        return null;
+      }
+    };
+    const clickRow = async (text: string) => {
+      const row = page
+        .locator('.quick-input-widget .monaco-list-row')
+        .filter({ hasText: text })
+        .first();
+      await expect(row).toBeVisible({ timeout: 10_000 });
+      await row.click();
+    };
+    const openColorSetup = async () => {
+      await page.keyboard.press('Control+Shift+P');
+      await page.keyboard.type('Color Setup');
+      await clickRow('配色设置');
+    };
+
+    // 添加两个自定义色
+    await openColorSetup();
+    await clickRow('自定义调色板');
+    await clickRow('添加颜色');
+    const colorInput = page.getByPlaceholder(/#RRGGBB/);
+    await expect(colorInput).toBeVisible({ timeout: 10_000 });
+    await colorInput.click();
+    await page.keyboard.type('FF0000');
+    await page.keyboard.press('Enter');
+    // 与探针一致的稳定节奏: 等待菜单重开后点击
+    await page.waitForTimeout(800);
+    await clickRow('添加颜色');
+    await page.waitForTimeout(500);
+    const colorInput2 = page.getByPlaceholder(/#RRGGBB/);
+    await expect(colorInput2).toBeVisible({ timeout: 10_000 });
+    await colorInput2.click();
+    await page.keyboard.press('Control+A');
+    await page.keyboard.type('00FF00');
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(800);
+    // Esc 退出子菜单与主菜单(向导 ignoreFocusOut, 必须确保全部关闭)
+    await closeQuickInputs(page);
+
+    // 设置保存 + 立即预览(循环配色自动应用)
+    await expect
+      .poll(readCustom, { timeout: 15_000 })
+      .toEqual(['#FF0000', '#00FF00']);
+    await expect
+      .poll(() => renderedSpanColors(page, '今天也要好好读书'), {
+        timeout: 15_000,
+      })
+      .toContain('rgb(255, 0, 0)');
+    await expect
+      .poll(() => renderedSpanColors(page, '来了'), { timeout: 15_000 })
+      .toContain('rgb(0, 255, 0)');
+
+    // 清空自定义色
+    await openColorSetup();
+    await clickRow('自定义调色板');
+    await clickRow('清空');
+    await closeQuickInputs(page);
+
+    await expect.poll(readCustom, { timeout: 15_000 }).toEqual([]);
+    await expect
+      .poll(() => renderedSpanColors(page, '今天也要好好读书'), {
+        timeout: 15_000,
+      })
+      .toContain('rgb(78, 201, 176)');
+  });
+
+  test('13. AI 识别说话人: 真实 DeepSeek API 集成验证', async () => {
     test.skip(
       !process.env.DEEPSEEK_API_KEY,
       '需要 DEEPSEEK_API_KEY 环境变量(本地真实 API 集成验证, CI 跳过)',
@@ -883,18 +973,9 @@ test.describe('TXT 阅读器 E2E', () => {
     s['txtreader.dialogue.ai.baseUrl'] = ''; // 空 = 官方预设 https://api.deepseek.com
     s['txtreader.dialogue.ai.apiKey'] = process.env.DEEPSEEK_API_KEY;
     fs.writeFileSync(settingsPath, JSON.stringify(s, null, 2), 'utf8');
-    await page.waitForTimeout(2000);
 
-    await page.keyboard.press('Control+Shift+P');
-    await page.keyboard.type('Analyze');
-    const entry = page
-      .locator('.quick-input-widget .monaco-list-row')
-      .filter({ hasText: 'AI 识别说话人' })
-      .first();
-    await expect(entry).toBeVisible({ timeout: 10_000 });
-    await entry.click();
-
-    // 真实 API 往返需要时间: 等待对话出现调色板配色(深色主题下)
+    // 配置热加载有延迟且全套运行下更慢: 重试执行直到配色出现
+    // (若命令读到旧配置弹出配置向导, Esc 关闭后重试)
     const DARK_PALETTE_RGB = [
       'rgb(78, 201, 176)',
       'rgb(220, 220, 170)',
@@ -905,23 +986,37 @@ test.describe('TXT 阅读器 E2E', () => {
       'rgb(156, 220, 254)',
       'rgb(244, 135, 113)',
     ];
+    const hasPaletteColors = async () => {
+      const c1 = await renderedSpanColors(page, '今天也要好好读书');
+      return c1.some((c) => DARK_PALETTE_RGB.includes(c));
+    };
+    let applied = false;
+    for (let attempt = 0; attempt < 5 && !applied; attempt++) {
+      if (attempt > 0) {
+        fs.writeFileSync(settingsPath, JSON.stringify(s, null, 2), 'utf8');
+        await page.waitForTimeout(2000);
+      }
+      // 确保没有遗留的 quick input 拦截按键
+      await closeQuickInputs(page);
+      await page.keyboard.press('Control+Shift+P');
+      await page.keyboard.type('Analyze');
+      const entry = page
+        .locator('.quick-input-widget .monaco-list-row')
+        .filter({ hasText: 'AI 识别说话人' })
+        .first();
+      await expect(entry).toBeVisible({ timeout: 10_000 });
+      await entry.click();
+      try {
+        await expect.poll(hasPaletteColors, { timeout: 20_000 }).toBe(true);
+        applied = true;
+      } catch {}
+    }
+    expect(applied, '真实 DeepSeek 分析应产生说话人配色').toBe(true);
     await expect
-      .poll(
-        async () => {
-          const colors = await renderedSpanColors(page, '今天也要好好读书');
-          return colors.some((c) => DARK_PALETTE_RGB.includes(c));
-        },
-        { timeout: 60_000 },
-      )
-      .toBe(true);
-    await expect
-      .poll(
-        async () => {
-          const colors = await renderedSpanColors(page, '来了');
-          return colors.some((c) => DARK_PALETTE_RGB.includes(c));
-        },
-        { timeout: 30_000 },
-      )
+      .poll(async () => {
+        const c2 = await renderedSpanColors(page, '来了');
+        return c2.some((c) => DARK_PALETTE_RGB.includes(c));
+      }, { timeout: 15_000 })
       .toBe(true);
 
     // 分析结果已缓存
@@ -948,7 +1043,7 @@ test.describe('TXT 阅读器 E2E', () => {
       .toBeGreaterThanOrEqual(1);
   });
 
-  test('13. Ctrl+Alt+D 伪装成代码并生成备份', async () => {
+  test('14. Ctrl+Alt+D 伪装成代码并生成备份', async () => {
     // 聚焦编辑器后按快捷键
     await page.locator('.monaco-editor .view-lines').first().click();
     await page.keyboard.press('Control+Alt+D');
@@ -980,7 +1075,7 @@ test.describe('TXT 阅读器 E2E', () => {
     await page.screenshot({ path: 'test-results/02-disguised.png' });
   });
 
-  test('14. Ctrl+Alt+X 老板键：还原原文+保存+切纯文本', async () => {
+  test('15. Ctrl+Alt+X 老板键：还原原文+保存+切纯文本', async () => {
     await page.locator('.monaco-editor .view-lines').first().click();
     await page.keyboard.press('Control+Alt+X');
 

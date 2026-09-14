@@ -335,6 +335,8 @@ async function applyReadingSettings(showMessage = false) {
 let dialogueDecorationType = undefined;
 const speakerDecorationTypes = []; // { type, color }
 let speakerAssignments = []; // 每段对话引号的配色索引, null = 未分配
+// 配色来源: 'manual'(命令/向导显式设置, off 模式不清除) | 'auto'(按 speakerColors 设置自动应用)
+let speakerAssignmentsSource = "none";
 
 const DARK_SPEAKER_PALETTE = [
   "#4EC9B0", "#DCDCAA", "#569CD6", "#C586C0",
@@ -473,6 +475,7 @@ async function cycleDialogueColors() {
   // 自定义颜色可能在设置里刚改过: 重建装饰类型再用当前调色板分配
   rebuildSpeakerDecorationTypes();
   speakerAssignments = ranges.map((_, i) => i % speakerPalette().length);
+  speakerAssignmentsSource = "manual";
   refreshDialogueDecorations();
   vscode.window.showInformationMessage(
     `已为 ${ranges.length} 段对话应用循环配色（每条不同颜色）`
@@ -517,14 +520,19 @@ async function applySpeakerMode() {
   const editor = vscode.window.activeTextEditor;
   if (!editor || editor.document.languageId !== LANG_ID) return;
   if (mode === "off") {
-    speakerAssignments = [];
-    refreshDialogueDecorations();
+    // 只清除自动应用的配色; 手动命令(循环/AI/向导)的结果保留
+    if (speakerAssignmentsSource === "auto") {
+      speakerAssignments = [];
+      speakerAssignmentsSource = "none";
+      refreshDialogueDecorations();
+    }
     return;
   }
   const quotes = speakers.extractQuotes(editor.document.getText());
   if (mode === "cycle") {
     rebuildSpeakerDecorationTypes();
     speakerAssignments = quotes.map((_, i) => i % speakerPalette().length);
+    speakerAssignmentsSource = "auto";
     refreshDialogueDecorations();
     return;
   }
@@ -532,6 +540,7 @@ async function applySpeakerMode() {
     const cached = await loadCachedSpeakers(quotes);
     if (cached && Array.isArray(cached.assignments)) {
       speakerAssignments = cached.assignments;
+      speakerAssignmentsSource = "auto";
       refreshDialogueDecorations();
     }
     // 无缓存时保持现状, 用户运行「AI 识别说话人」命令后生效
@@ -586,6 +595,97 @@ async function setupAIInteraction() {
     );
   }
   return { provider: picked.value, apiKey: key.trim() };
+}
+
+/** 配色设置向导: 命令内管理对话样式与自定义调色板, 修改后立即预览 */
+async function setupColors() {
+  const conf = vscode.workspace.getConfiguration("txtreader");
+  for (;;) {
+    const custom = conf.get("dialogue.customColors", []);
+    const action = await vscode.window.showQuickPick(
+      [
+        {
+          label: "$(edit) 对话样式…",
+          description: `当前: ${conf.get("highlight.dialogueStyle", "string")}`,
+          value: "style",
+        },
+        {
+          label: "$(symbol-color) 自定义调色板…",
+          description: custom.length
+            ? `${custom.length} 个自定义色: ${custom.join(" ")}`
+            : "使用内置明暗自适应调色板",
+          value: "palette",
+        },
+      ],
+      { placeHolder: "配色设置（Esc 退出）", ignoreFocusOut: true }
+    );
+    if (!action) return;
+    if (action.value === "style") {
+      await pickDialogueStyle();
+    } else {
+      await editPalette(conf);
+    }
+  }
+}
+
+async function editPalette(conf) {
+  let current = conf.get("dialogue.customColors", []);
+  for (;;) {
+    const items = [
+      { label: "$(add) 添加颜色", value: "add" },
+      ...(current.length
+        ? [{ label: "$(trash) 清空（恢复内置配色）", value: "clear" }]
+        : []),
+      ...current.map((c, i) => ({
+        label: `$(circle-filled) ${c}`,
+        description: i === 0 ? "第 1 个说话人的颜色 · 点击删除" : "点击删除",
+        value: `del:${c}`,
+      })),
+    ];
+    const picked = await vscode.window.showQuickPick(items, {
+      placeHolder: `自定义调色板（当前 ${current.length} 个，Esc 返回）`,
+      ignoreFocusOut: true,
+    });
+    if (!picked) return;
+
+    if (picked.value === "add") {
+      const input = await vscode.window.showInputBox({
+        prompt: "输入十六进制颜色（6 位，如 #FF6B6B）",
+        placeHolder: "#RRGGBB 或 RRGGBB",
+        value: "",
+        ignoreFocusOut: true,
+        validateInput: (v) =>
+          /^#?[0-9a-fA-F]{6}$/.test(v.trim())
+            ? undefined
+            : "格式不对：需要 6 位十六进制颜色，如 #FF6B6B",
+      });
+      if (input === undefined) continue;
+      const norm = input.trim();
+      current = [
+        ...current,
+        norm.startsWith("#") ? norm.toUpperCase() : `#${norm.toUpperCase()}`,
+      ];
+    } else if (picked.value === "clear") {
+      current = [];
+    } else if (picked.value.startsWith("del:")) {
+      current = current.filter((c) => c !== picked.value.slice(4));
+    }
+
+    await conf.update(
+      "dialogue.customColors",
+      current,
+      vscode.ConfigurationTarget.Global
+    );
+    // 立即预览: 循环配色当前文档
+    const editor = vscode.window.activeTextEditor;
+    if (editor && editor.document.languageId === LANG_ID) {
+      rebuildSpeakerDecorationTypes();
+      const ranges = collectDialogueRanges();
+      speakerAssignments = ranges.map((_, i) => i % speakerPalette().length);
+      speakerAssignmentsSource = "manual";
+      refreshDialogueDecorations();
+    }
+  }
 }
 
 /** 命令: AI 识别说话人(Claude 分析 + 按人配色 + 缓存) */
@@ -690,6 +790,7 @@ async function analyzeSpeakersCommand() {
     return r ? speakerColor.get(r.speaker) : null;
   });
   speakerAssignments = assignments;
+  speakerAssignmentsSource = "manual";
   refreshDialogueDecorations();
   await saveCachedSpeakers(quotes, assignments, [...speakerColor.keys()]);
 
@@ -779,6 +880,7 @@ function activate(context) {
         );
       }
     }),
+    vscode.commands.registerCommand("txtreader.setupColors", setupColors),
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration("txtreader.reading")) {
         applyReadingSettings().catch(() => {});

@@ -160,6 +160,9 @@ async function analyzeSpeakersOpenAI({ apiKey, baseUrl, model }, quotes, fullTex
     body: JSON.stringify({
       model: model || "gpt-4o-mini",
       temperature: 0,
+      // 显式给足输出额度: 推理模型(如 deepseek-flash)的思考过程也占用
+      // max_tokens, 不设置时会因思考耗尽额度导致 content 为空
+      max_tokens: 8192,
       messages: [
         {
           role: "system",
@@ -177,12 +180,9 @@ async function analyzeSpeakersOpenAI({ apiKey, baseUrl, model }, quotes, fullTex
     throw new Error(`OpenAI 接口返回 ${response.status}: ${snippet}`);
   }
   const data = await response.json();
-  const content =
-    data &&
-    data.choices &&
-    data.choices[0] &&
-    data.choices[0].message &&
-    data.choices[0].message.content;
+  const message = data && data.choices && data.choices[0] && data.choices[0].message;
+  // 推理模型可能把回答放在 reasoning_content 而非 content: 兼容两种
+  const content = (message && (message.content || message.reasoning_content || "")).trim();
   if (!content) {
     throw new Error("OpenAI 接口返回缺少 choices[0].message.content");
   }
