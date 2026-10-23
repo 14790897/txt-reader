@@ -127,6 +127,41 @@ function killByCmdlineMarker(marker: string): void {
   } catch {}
 }
 
+/** 把本测试的 VS Code 窗口移到屏幕外（不遮挡用户屏幕，渲染与 CDP 不受影响） */
+function moveWindowOffscreen(marker: string): void {
+  if (process.platform !== 'win32') return;
+  const scriptPath = path.join(__dirname, '..', 'move-window-offscreen.ps1');
+  try {
+    execSync(
+      `powershell -NoProfile -ExecutionPolicy Bypass -File "${scriptPath}" -Marker "${marker}"`,
+      { stdio: 'ignore', timeout: 30_000 },
+    );
+  } catch {}
+}
+
+/** 后台守护进程: 窗口一出现就移到屏幕外, 把启动瞬间的闪现降到最低 */
+function spawnOffscreenWatcher(marker: string): void {
+  if (process.platform !== 'win32') return;
+  const scriptPath = path.join(__dirname, '..', 'move-window-offscreen.ps1');
+  try {
+    spawn(
+      'powershell',
+      [
+        '-NoProfile',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-File',
+        scriptPath,
+        '-Marker',
+        marker,
+        '-WatchSeconds',
+        '120',
+      ],
+      { detached: true, stdio: 'ignore', windowsHide: true },
+    ).unref();
+  } catch {}
+}
+
 /** 统计命令行包含 marker 的 Code.exe 数量 */
 function countByCmdlineMarker(marker: string): number {
   if (process.platform !== 'win32') return 0;
@@ -216,6 +251,40 @@ async function closeQuickInputs(page: Page): Promise<void> {
   }
 }
 
+/** 从命令面板执行命令(带重试, 规避面板动画/焦点竞态) */
+async function runCommandFromPalette(
+  page: Page,
+  search: string,
+  rowText: string,
+): Promise<void> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await closeQuickInputs(page);
+    await page.keyboard.press('Control+Shift+P');
+    await page.keyboard.type(search);
+    const row = page
+      .locator('.quick-input-widget .monaco-list-row')
+      .filter({ hasText: rowText })
+      .first();
+    if (await row.isVisible({ timeout: 4000 }).catch(() => false)) {
+      await row.click();
+      return;
+    }
+    await page.keyboard.press('Escape').catch(() => {});
+  }
+  throw new Error(`命令面板中找不到: ${rowText}`);
+}
+
+// ---- 模块加载时创建临时目录并启动"窗口移出屏幕"守护 ----
+// 在 Playwright 收集阶段就完成 PowerShell 预热; VS Code 启动时守护已在扫描,
+// 窗口出现后约 200ms 内即被移到屏幕外, 尽量消除测试窗口遮挡用户的闪现
+const E2E_TMP_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'txtreader-e2e-'));
+const E2E_USER_DATA_DIR = path.join(E2E_TMP_DIR, 'user-data');
+const E2E_EXTENSIONS_DIR = path.join(E2E_TMP_DIR, 'extensions');
+fs.mkdirSync(E2E_USER_DATA_DIR, { recursive: true });
+fs.mkdirSync(E2E_EXTENSIONS_DIR, { recursive: true });
+spawnOffscreenWatcher(E2E_USER_DATA_DIR);
+
+
 test.describe('TXT 阅读器 E2E', () => {
   let vscodeProcess: ChildProcess | null = null;
   let browser: Browser | null = null;
@@ -235,12 +304,11 @@ test.describe('TXT 阅读器 E2E', () => {
     // Mock Claude API: 说话人分析走本地桩服务(确定性测试, 不依赖真实 API)
     mockAI = await startMockClaudeServer();
 
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'txtreader-e2e-'));
-    userDataDir = path.join(tmpDir, 'user-data');
-    fs.mkdirSync(userDataDir, { recursive: true });
-    // 关键: 空 extensions-dir 隔离用户真实扩展(重型 AI 扩展会拖慢甚至崩掉扩展宿主)
-    const extensionsDir = path.join(tmpDir, 'extensions');
-    fs.mkdirSync(extensionsDir, { recursive: true });
+    // 临时目录与窗口守护已在模块加载时创建(见上方 E2E_* 常量),
+    // 守护进程在 VS Code 启动前已完成 PowerShell 预热
+    const tmpDir = E2E_TMP_DIR;
+    userDataDir = E2E_USER_DATA_DIR;
+    const extensionsDir = E2E_EXTENSIONS_DIR;
 
     // 清理历史测试泄漏的 VS Code 实例, 并确认清零(防止 CDP 串到旧窗口)
     killByCmdlineMarker('txtreader-e2e-');
@@ -293,6 +361,8 @@ test.describe('TXT 阅读器 E2E', () => {
       '--skip-release-notes',
       '--disable-workspace-trust',
       '--disable-telemetry',
+      // 启动即放到屏幕外, 避免测试窗口遮挡用户屏幕
+      '--window-position=-32000,-32000',
       `--user-data-dir=${userDataDir}`,
       `--extensions-dir=${extensionsDir}`,
       `--extensionDevelopmentPath=${EXT_DIR}`,
@@ -312,6 +382,8 @@ test.describe('TXT 阅读器 E2E', () => {
     await waitForCDP(CDP_PORT);
     browser = await chromium.connectOverCDP(`http://127.0.0.1:${CDP_PORT}`);
     page = await waitForWorkbenchPage(browser);
+    // 兜底: 把本测试的窗口再显式移到屏幕外(启动参数在部分版本可能不生效)
+    moveWindowOffscreen(userDataDir);
     await page.waitForLoadState('domcontentloaded');
     // 扩展宿主 console 会转发到 workbench 控制台, 收集 [txtreader] 日志辅助诊断
     page.on('console', (msg) => {
@@ -850,31 +922,37 @@ test.describe('TXT 阅读器 E2E', () => {
   });
 
   test('11. 自定义对话配色: customColors 替代内置调色板', async () => {
-    const settingsPath = path.join(userDataDir, 'User', 'settings.json');
-    const writeCustom = (colors: string[]) => {
-      const s = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-      s['txtreader.dialogue.customColors'] = colors;
-      fs.writeFileSync(settingsPath, JSON.stringify(s, null, 2), 'utf8');
-    };
-    const runCycle = async () => {
-      await page.keyboard.press('Control+Shift+P');
-      await page.keyboard.type('Cycle');
-      const entry = page
+    const clickRow = async (text: string) => {
+      const row = page
         .locator('.quick-input-widget .monaco-list-row')
-        .filter({ hasText: '循环配色对话' })
+        .filter({ hasText: text })
         .first();
-      await expect(entry).toBeVisible({ timeout: 10_000 });
-      await entry.click();
+      await expect(row).toBeVisible({ timeout: 10_000 });
+      await row.click();
+    };
+    const openColorSetup = async () => {
+      await runCommandFromPalette(page, 'Color Setup', '配色设置');
+    };
+    const addColor = async (hex: string) => {
+      await clickRow('添加颜色');
+      const input = page.getByPlaceholder(/#RRGGBB/);
+      await expect(input).toBeVisible({ timeout: 10_000 });
+      await input.click();
+      await page.keyboard.press('Control+A');
+      await page.keyboard.type(hex);
+      await page.keyboard.press('Enter');
+      await page.waitForTimeout(800);
     };
 
-    // 设置自定义色(红/绿), 配置热加载有延迟 -> 重试执行直到生效
-    writeCustom(['#FF0000', '#00FF00']);
-    for (let attempt = 0; attempt < 6; attempt++) {
-      if (attempt > 0) await page.waitForTimeout(2000);
-      await runCycle();
-      const colors = await renderedSpanColors(page, '今天也要好好读书');
-      if (colors.some((c) => c === 'rgb(255, 0, 0)')) break;
-    }
+    // 通过向导设置自定义色(红/绿): 走 VS Code 配置 API,
+    // 避免"外部改写 settings.json 后配置服务不再热加载"的测试环境竞态
+    await openColorSetup();
+    await clickRow('自定义调色板');
+    await addColor('FF0000');
+    await addColor('00FF00');
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Escape');
+
     await expect
       .poll(() => renderedSpanColors(page, '今天也要好好读书'), {
         timeout: 15_000,
@@ -884,29 +962,12 @@ test.describe('TXT 阅读器 E2E', () => {
       .poll(() => renderedSpanColors(page, '来了'), { timeout: 15_000 })
       .toContain('rgb(0, 255, 0)');
 
-    // 清理: 恢复内置调色板(深色主题第 1 色)
-    writeCustom([]);
-    for (let attempt = 0; attempt < 6; attempt++) {
-      if (attempt > 0) await page.waitForTimeout(2000);
-      await runCycle();
-      const colors = await renderedSpanColors(page, '今天也要好好读书');
-      if (colors.some((c) => c === 'rgb(78, 201, 176)')) break;
-    }
-    await expect
-      .poll(() => renderedSpanColors(page, '今天也要好好读书'), {
-        timeout: 15_000,
-      })
-      .toContain('rgb(78, 201, 176)');
-
-    // 设置自定义色后应自动生效(无需再执行循环配色命令, 模拟重启后打开文档的场景)
-    writeCustom(['#00FF00']);
-    await expect
-      .poll(() => renderedSpanColors(page, '今天也要好好读书'), {
-        timeout: 15_000,
-      })
-      .toContain('rgb(0, 255, 0)');
-    // 清理恢复内置调色板
-    writeCustom([]);
+    // 清理: 向导内清空自定义色, 恢复内置调色板(深色主题第 1 色)
+    await openColorSetup();
+    await clickRow('自定义调色板');
+    await clickRow('清空');
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Escape');
     await expect
       .poll(() => renderedSpanColors(page, '今天也要好好读书'), {
         timeout: 15_000,
@@ -936,9 +997,7 @@ test.describe('TXT 阅读器 E2E', () => {
       await row.click();
     };
     const openColorSetup = async () => {
-      await page.keyboard.press('Control+Shift+P');
-      await page.keyboard.type('Color Setup');
-      await clickRow('配色设置');
+      await runCommandFromPalette(page, 'Color Setup', '配色设置');
     };
 
     // 添加两个自定义色

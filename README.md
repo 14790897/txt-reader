@@ -138,8 +138,10 @@ class TextProcessor:
 ```bash
 cd e2e
 npm install   # 已安装过可跳过
-npx playwright test --project=vscode --reporter=list
+npm test      # 自动把测试窗口移出屏幕，不遮挡当前工作
 ```
+
+> `npm test` 会先启动窗口守护（Windows），把 VS Code 开发宿主窗口移到屏幕外；直接运行 `npx playwright test` 时窗口也会在约 1 秒内被移走。
 
 覆盖十条用例：txt 自动启用代码样式语言并分词高亮、阅读配置自动应用、对话引号样式、可视化切换、循环配色、AI 识别说话人（Anthropic / OpenAI 兼容 / DeepSeek 预设三种接口，mock 服务端到端验证）、伪装成代码、紧急还原。测试自动使用临时 user-data-dir 和空 extensions-dir 隔离环境，结束后按命令行标记精确清理 VS Code 实例。`test-grammar.js` 是语法高亮的单元级回归测试，改 grammar 后先跑它。
 
