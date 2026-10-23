@@ -332,16 +332,31 @@ async function applyReadingSettings(showMessage = false) {
       err && err.message
     );
   }
-  // 选区颜色: VS Code 1.139 实测语言块([txt-reader])对编辑器颜色不生效,
-  // 只能全局覆盖(workbench.colorCustomizations 顶层)。
-  // 一并覆盖所有"选中文字"相关的高亮层: 主选区/失焦选区/同词高亮
+  // 中文没有空格, VS Code 会把整段当成一个"词": 光标停段内时整段被
+  // occurrencesHighlight 高亮。语言级关闭, 只影响 txt(真实拖选不受影响)
+  const occurrences = conf.get("reading.occurrencesHighlight", false);
+  try {
+    await editorConf.update(
+      "occurrencesHighlight",
+      occurrences ? "singleFile" : "off",
+      vscode.ConfigurationTarget.Global,
+      true
+    );
+  } catch (err) {
+    console.warn(
+      "[txtreader] occurrencesHighlight not language-overridable:",
+      err && err.message
+    );
+  }
+  // 真实选区颜色(可选): 只覆盖主选区/失焦选区;
+  // 光标停留的"出现项高亮"由上面的 occurrencesHighlight 负责, 不在这里改
   const wbConf = vscode.workspace.getConfiguration("workbench");
   // 注意: get() 返回的是 VS Code 的配置 Proxy, 直接增删属性会抛
   // "'isExtensible' on proxy" 异常, 必须先深拷贝成普通对象再修改
   const existing = JSON.parse(
     JSON.stringify(wbConf.get("colorCustomizations") || {})
   );
-  // 清理旧版本遗留的语言块写法
+  // 清理旧版本遗留的语言块写法与不再需要的词高亮覆盖
   delete existing["[txt-reader]"];
   const selectionKeys = [
     "editor.selectionBackground",
@@ -350,13 +365,14 @@ async function applyReadingSettings(showMessage = false) {
     "editor.wordHighlightBackground",
     "editor.wordHighlightStrongBackground",
   ];
+  const realSelectionKeys = [
+    "editor.selectionBackground",
+    "editor.inactiveSelectionBackground",
+  ];
+  for (const k of selectionKeys) delete existing[k];
   if (selectionBackground) {
-    for (const k of selectionKeys) {
+    for (const k of realSelectionKeys) {
       existing[k] = selectionBackground;
-    }
-  } else {
-    for (const k of selectionKeys) {
-      delete existing[k];
     }
   }
   await wbConf.update(

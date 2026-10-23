@@ -2,7 +2,7 @@
   "name": "txt-beautifier",
   "displayName": "TXT 美化阅读器 (TXT Beautify Reader)",
   "description": "txt 阅读器：代码风格语法高亮、舒适阅读排版、按说话人对话配色，支持 AI 识别说话人与一键还原原文。",
-  "version": "0.7.8",
+  "version": "0.7.9",
   "publisher": "take-a-rest-dev",
   "icon": "icon.png",
   "repository": {
@@ -327,7 +327,12 @@
         "txtreader.selection.background": {
           "type": "string",
           "default": "",
-          "description": "选中文字时所有选区相关高亮(主选区/失焦选区/同词高亮)的颜色（全局生效；留空用主题默认；填 #FFFFFF00 完全透明不显示选区）"
+          "description": "真实选中文字时选区的颜色（可选, 留空用主题默认; 光标停留时的整段高亮由 reading.occurrencesHighlight 控制）"
+        },
+        "txtreader.reading.occurrencesHighlight": {
+          "type": "boolean",
+          "default": false,
+          "description": "光标停在文字中时是否高亮相同的词。中文没有空格, VS Code 会把整段当成一个词而高亮整段, 建议保持关闭（只影响 txt）"
         }
       }
     }

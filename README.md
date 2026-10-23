@@ -119,6 +119,8 @@ class TextProcessor:
 | `txtreader.reading.fontSize` | `20` | 阅读字号（普通代码约 13） |
 | `txtreader.reading.lineHeight` | `2.2` | 行距倍率（普通代码约 1.4 的密集行距） |
 | `txtreader.reading.fontFamily` | `""` | 阅读字体，留空跟随全局字体 |
+| `txtreader.reading.occurrencesHighlight` | `false` | 光标停留时是否高亮相同词（中文会把整段当成一个词，建议关闭） |
+| `txtreader.selection.background` | `""` | 真实选中文字时的选区颜色，留空用主题默认 |
 | `txtreader.highlight.dialogueStyle` | `string` | 对话引号样式：`string` 字符串色 / `bold` 加粗（与正文同色）/ `plain` 纯文本 |
 | `txtreader.dialogue.speakerColors` | `off` | 按说话人配色：`off` 关闭 / `cycle` 循环配色 / `ai` AI 识别后按人配色（自动应用缓存结果） |
 | `txtreader.dialogue.ai.provider` | `anthropic` | 接口格式：`anthropic`（默认 Claude）/ `openai`（OpenAI 兼容）/ `deepseek`（**官方预设，只填 Key 即可**） |

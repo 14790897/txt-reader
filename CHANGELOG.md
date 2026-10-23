@@ -1,5 +1,12 @@
 # 更新日志
 
+## [0.7.9] - 2026-10-23
+
+- 修复：光标停在段落中时整段被高亮（中文没有空格，VS Code 把整段当成一个"词"）。改为在 txt 语言级关闭 occurrencesHighlight，真实拖选完全不受影响
+- `txtreader.selection.background` 语义调整：只覆盖真实选中文字时的选区颜色，留空使用主题默认（不再影响词高亮）
+- 新增 `txtreader.reading.occurrencesHighlight`（默认 `false`）：是否在 txt 中启用"光标停留高亮相同词"
+- E2E：阅读设置用例新增"光标停留无整段高亮 + 真实选区可见"断言
+
 ## [0.7.8] - 2026-10-23
 
 - 修复：用户已有 workbench.colorCustomizations 配置时，选区透明覆盖写入失败（VS Code 返回的配置对象是 Proxy，直接增删属性抛 isExtensible 异常）；改为深拷贝后修改

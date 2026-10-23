@@ -343,7 +343,7 @@ test.describe('TXT 阅读器 E2E', () => {
           'txtreader.reading.fontSize': 24,
           'txtreader.reading.lineHeight': 2.4,
           'txtreader.highlight.dialogueStyle': 'bold',
-          'txtreader.selection.background': '#FFFFFF00',
+          'txtreader.selection.background': '',
           'txtreader.dialogue.ai.baseUrl': `http://127.0.0.1:${mockAI.port}`,
           'txtreader.dialogue.ai.apiKey': 'test-key',
         },
@@ -469,6 +469,7 @@ test.describe('TXT 阅读器 E2E', () => {
                   lineHeight: lang['editor.lineHeight'],
                   invisibleChars:
                     lang['editor.unicodeHighlight.invisibleCharacters'],
+                  occurrences: lang['editor.occurrencesHighlight'],
                 }
               : null;
           } catch {
@@ -480,8 +481,11 @@ test.describe('TXT 阅读器 E2E', () => {
       .toEqual({
         fontSize: 24,
         lineHeight: 2.4,
-        selectionBackground: '#FFFFFF00',
+        // 未配置 selection.background 时不写全局覆盖(主题默认选区)
+        selectionBackground: null,
         invisibleChars: false,
+        // 中文整段不会被当作一个词高亮
+        occurrences: 'off',
       });
 
     // 渲染层验证: 实际行高 ≈ 24 * 2.4 = 57.6px(默认密集行距只有 ~18px)
@@ -506,6 +510,42 @@ test.describe('TXT 阅读器 E2E', () => {
       return Number.isFinite(h) ? h : 0;
     });
     expect(lineHeightPx, '行高应明显大于默认密集行距').toBeGreaterThan(50);
+
+    // 光标停在段落内: 中文不应被当成一个"词"而整段高亮
+    const paraLine = mainEditor
+      .locator('.view-line')
+      .filter({ hasText: '天刚蒙蒙亮' })
+      .first();
+    const paraBox = await paraLine.boundingBox();
+    if (paraBox) {
+      await page.mouse.click(paraBox.x + 120, paraBox.y + paraBox.height / 2);
+    }
+    await page.waitForTimeout(800);
+    const occurrenceHighlights = await mainEditor
+      .locator('.wordHighlight, .wordHighlightStrong, .selectionHighlight')
+      .count();
+    expect(occurrenceHighlights, '光标停留不应高亮整段').toBe(0);
+
+    // 真实拖选: 选区仍应可见(不是全透明)
+    await page.keyboard.press('Home');
+    await page.keyboard.press('Shift+End');
+    await expect
+      .poll(
+        () =>
+          mainEditor
+            .locator('.selected-text')
+            .first()
+            .evaluate((el) => getComputedStyle(el).backgroundColor)
+            .catch(() => null),
+        { timeout: 10_000 },
+      )
+      .not.toBe('rgba(255, 255, 255, 0)');
+    const selectedBg = await mainEditor
+      .locator('.selected-text')
+      .first()
+      .evaluate((el) => getComputedStyle(el).backgroundColor)
+      .catch(() => null);
+    expect(selectedBg, '真实选区应有可见背景').not.toBe('rgba(0, 0, 0, 0)');
 
     // 元素级截图: 保证截图内容与上面断言的是同一个编辑器
     await mainEditor.screenshot({
