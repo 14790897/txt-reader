@@ -618,6 +618,32 @@ async function applySpeakerMode() {
     // 无缓存时保持现状, 用户运行「AI 识别说话人」命令后生效
   }
 }
+// ---------- txt 阅读字号缩放 ----------
+// 在 txt 里 Ctrl+= / Ctrl+- / Ctrl+0 调整的是阅读字号(可记忆、可持久化),
+// 而不是全局窗口缩放; 其他文件中的快捷键保持 VS Code 默认行为。
+async function fontSizeZoom(delta) {
+  const conf = vscode.workspace.getConfiguration("txtreader");
+  const cur = conf.get("reading.fontSize", 20);
+  const step = conf.get("reading.zoomStep", 2);
+  const next = Math.max(12, Math.min(60, cur + delta * step));
+  if (next === cur) return;
+  await conf.update(
+    "reading.fontSize",
+    next,
+    vscode.ConfigurationTarget.Global
+  );
+  vscode.window.setStatusBarMessage(`阅读字号: ${next}`, 1500);
+}
+
+async function fontSizeReset() {
+  const conf = vscode.workspace.getConfiguration("txtreader");
+  await conf.update(
+    "reading.fontSize",
+    20,
+    vscode.ConfigurationTarget.Global
+  );
+  vscode.window.setStatusBarMessage("阅读字号已重置为 20", 1500);
+}
 
 /** 命令内配置引导: 选择接口 -> 输入 Key -> 保存到设置 */
 async function setupAIInteraction() {
@@ -953,6 +979,9 @@ function activate(context) {
       }
     }),
     vscode.commands.registerCommand("txtreader.setupColors", setupColors),
+    vscode.commands.registerCommand("txtreader.fontZoomIn", () => fontSizeZoom(1)),
+    vscode.commands.registerCommand("txtreader.fontZoomOut", () => fontSizeZoom(-1)),
+    vscode.commands.registerCommand("txtreader.fontZoomReset", fontSizeReset),
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (
         e.affectsConfiguration("txtreader.reading") ||

@@ -1227,4 +1227,55 @@ test.describe('TXT 阅读器 E2E', () => {
 
     await page.screenshot({ path: 'test-results/03-restored-plain.png' });
   });
+
+  test('16. txt 缩放记忆: Ctrl+= 调整并持久化阅读字号', async () => {
+    const settingsPath = path.join(userDataDir, 'User', 'settings.json');
+    const readFontSize = () => {
+      try {
+        const s = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+        return s['txtreader.reading.fontSize'] ?? null;
+      } catch {
+        return null;
+      }
+    };
+    const langText = async () =>
+      (await page
+        .locator('.statusbar-item')
+        .filter({ hasText: /TXT 阅读|Plain Text/ })
+        .first()
+        .textContent()) || '';
+
+    // 老板键测试把语言切回了纯文本: 先确保回到 TXT 阅读语言
+    for (let i = 0; i < 2; i++) {
+      if ((await langText()).includes('TXT 阅读')) break;
+      await runCommandFromPalette(page, '代码样式', '切换 代码样式');
+      await page.waitForTimeout(600);
+    }
+    await expect.poll(langText, { timeout: 15_000 }).toContain('TXT 阅读');
+
+    // 初始字号为 beforeAll 配置的 24
+    await expect.poll(readFontSize, { timeout: 15_000 }).toBe(24);
+
+    // 在 txt 中按 Ctrl+= 放大: 调整的是阅读字号并写入设置(可记忆)
+    await page.locator('.monaco-editor .view-lines').first().click();
+    await page.keyboard.press('Control+Equal');
+    await expect.poll(readFontSize, { timeout: 15_000 }).toBe(26);
+    await page.keyboard.press('Control+Equal');
+    await expect.poll(readFontSize, { timeout: 15_000 }).toBe(28);
+
+    // Ctrl+- 缩小
+    await page.keyboard.press('Control+Minus');
+    await expect.poll(readFontSize, { timeout: 15_000 }).toBe(26);
+
+    // Ctrl+0 重置为默认 20
+    await page.keyboard.press('Control+Digit0');
+    await expect.poll(readFontSize, { timeout: 15_000 }).toBe(20);
+
+    // 恢复为测试初始值 24, 保持环境整洁(按键偶发丢失, 轮询补按)
+    for (let i = 0; i < 6 && readFontSize() !== 24; i++) {
+      await page.keyboard.press('Control+Equal');
+      await page.waitForTimeout(400);
+    }
+    await expect.poll(readFontSize, { timeout: 15_000 }).toBe(24);
+  });
 });

@@ -60,6 +60,9 @@ vsce package
 | 紧急还原 | `Ctrl+Alt+X` | 还原原文 + 切回纯文本显示 |
 | 切换 代码样式/纯文本 | - | 只切换高亮样式，**不改动文件内容** |
 | 切换对话引号样式 | `Ctrl+Alt+S` | 下拉选择 橙红色/加粗/纯文本，选完立即生效 |
+| 放大阅读字号 | `Ctrl+=`（仅 txt） | 字号 +2 并记住，重启后保持 |
+| 缩小阅读字号 | `Ctrl+-`（仅 txt） | 字号 -2 |
+| 重置阅读字号 | `Ctrl+0`（仅 txt） | 恢复默认 20 |
 | 循环配色对话 | - | 每段对话轮换不同颜色（无需 AI，命令面板输入 Cycle） |
 | AI 识别说话人 | - | Claude 分析每句话是谁说的，按人固定配色并缓存（命令面板输入 Analyze） |
 | 切换 TXT Dark 主题 | - | 应用 TXT Dark；再次执行恢复之前的主题 |
@@ -119,6 +122,7 @@ class TextProcessor:
 | `txtreader.reading.fontSize` | `20` | 阅读字号（普通代码约 13） |
 | `txtreader.reading.lineHeight` | `2.2` | 行距倍率（普通代码约 1.4 的密集行距） |
 | `txtreader.reading.fontFamily` | `""` | 阅读字体，留空跟随全局字体 |
+| `txtreader.reading.zoomStep` | `2` | txt 中 Ctrl+= / Ctrl+- 每次调整的字号步长 |
 | `txtreader.reading.occurrencesHighlight` | `false` | 光标停留时是否高亮相同词（中文会把整段当成一个词，建议关闭） |
 | `txtreader.selection.background` | `""` | 真实选中文字时的选区颜色，留空用主题默认 |
 | `txtreader.highlight.dialogueStyle` | `string` | 对话引号样式：`string` 字符串色 / `bold` 加粗（与正文同色）/ `plain` 纯文本 |

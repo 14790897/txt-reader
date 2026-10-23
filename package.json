@@ -2,7 +2,7 @@
   "name": "txt-beautifier",
   "displayName": "TXT 美化阅读器 (TXT Beautify Reader)",
   "description": "txt 阅读器：代码风格语法高亮、舒适阅读排版、按说话人对话配色，支持 AI 识别说话人与一键还原原文。",
-  "version": "0.7.9",
+  "version": "0.8.0",
   "publisher": "take-a-rest-dev",
   "icon": "icon.png",
   "repository": {
@@ -37,7 +37,10 @@
     "onCommand:txtreader.cycleDialogueColors",
     "onCommand:txtreader.analyzeSpeakers",
     "onCommand:txtreader.setupAI",
-    "onCommand:txtreader.setupColors"
+    "onCommand:txtreader.setupColors",
+    "onCommand:txtreader.fontZoomIn",
+    "onCommand:txtreader.fontZoomOut",
+    "onCommand:txtreader.fontZoomReset"
   ],
   "contributes": {
     "languages": [
@@ -123,6 +126,21 @@
         "command": "txtreader.setupColors",
         "title": "配色设置 (Color Setup)",
         "category": "TXT 阅读器"
+      },
+      {
+        "command": "txtreader.fontZoomIn",
+        "title": "放大阅读字号 (Zoom In)",
+        "category": "TXT 阅读器"
+      },
+      {
+        "command": "txtreader.fontZoomOut",
+        "title": "缩小阅读字号 (Zoom Out)",
+        "category": "TXT 阅读器"
+      },
+      {
+        "command": "txtreader.fontZoomReset",
+        "title": "重置阅读字号 (Zoom Reset)",
+        "category": "TXT 阅读器"
       }
     ],
     "keybindings": [
@@ -150,6 +168,21 @@
         "command": "txtreader.cycleDialogueColors",
         "key": "ctrl+alt+c",
         "when": "editorTextFocus && resourceExtname == .txt"
+      },
+      {
+        "command": "txtreader.fontZoomIn",
+        "key": "ctrl+=",
+        "when": "editorTextFocus && editorLangId == txt-reader"
+      },
+      {
+        "command": "txtreader.fontZoomOut",
+        "key": "ctrl+-",
+        "when": "editorTextFocus && editorLangId == txt-reader"
+      },
+      {
+        "command": "txtreader.fontZoomReset",
+        "key": "ctrl+0",
+        "when": "editorTextFocus && editorLangId == txt-reader"
       }
     ],
     "menus": {
@@ -333,6 +366,13 @@
           "type": "boolean",
           "default": false,
           "description": "光标停在文字中时是否高亮相同的词。中文没有空格, VS Code 会把整段当成一个词而高亮整段, 建议保持关闭（只影响 txt）"
+        },
+        "txtreader.reading.zoomStep": {
+          "type": "number",
+          "default": 2,
+          "minimum": 1,
+          "maximum": 10,
+          "description": "在 txt 中按 Ctrl+= / Ctrl+- 时每次调整的字号步长"
         }
       }
     }
