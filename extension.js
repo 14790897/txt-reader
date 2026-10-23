@@ -318,6 +318,20 @@ async function applyReadingSettings(showMessage = false) {
     vscode.ConfigurationTarget.Global,
     true
   );
+  // 中文小说段落缩进用全角空格, 关闭"不可见字符"高亮(黄框), 只影响 txt
+  try {
+    await editorConf.update(
+      "unicodeHighlight.invisibleCharacters",
+      false,
+      vscode.ConfigurationTarget.Global,
+      true
+    );
+  } catch (err) {
+    console.warn(
+      "[txtreader] unicodeHighlight not language-overridable:",
+      err && err.message
+    );
+  }
   // 选区颜色: VS Code 1.139 实测语言块([txt-reader])对编辑器颜色不生效,
   // 只能全局覆盖(workbench.colorCustomizations 顶层)。
   // 一并覆盖所有"选中文字"相关的高亮层: 主选区/失焦选区/同词高亮

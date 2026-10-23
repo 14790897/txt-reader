@@ -391,6 +391,8 @@ test.describe('TXT 阅读器 E2E', () => {
                   selectionBackground:
                     s['workbench.colorCustomizations']?.['editor.selectionBackground'] || null,
                   lineHeight: lang['editor.lineHeight'],
+                  invisibleChars:
+                    lang['editor.unicodeHighlight.invisibleCharacters'],
                 }
               : null;
           } catch {
@@ -399,7 +401,12 @@ test.describe('TXT 阅读器 E2E', () => {
         },
         { timeout: 20_000 },
       )
-      .toEqual({ fontSize: 24, lineHeight: 2.4, selectionBackground: '#FFFFFF00' });
+      .toEqual({
+        fontSize: 24,
+        lineHeight: 2.4,
+        selectionBackground: '#FFFFFF00',
+        invisibleChars: false,
+      });
 
     // 渲染层验证: 实际行高 ≈ 24 * 2.4 = 57.6px(默认密集行距只有 ~18px)
     // 锚定到包含小说原文的那个 monaco 编辑器(避免命中 Chat 输入框等其他编辑器)
