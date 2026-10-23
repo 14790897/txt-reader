@@ -1,5 +1,15 @@
 # 更新日志
 
+## [0.7.6] - 2026-10-23
+
+- 选区透明化覆盖全部相关高亮层：主选区/失焦选区/同词高亮(wordHighlight)一并应用 txtreader.selection.background（#FFFFFF00 = 全部透明，选中文字不再出现任何浅蓝）
+- 实测截图验证：Light 2026 主题下选中整段，选区背景完全透明
+
+## [0.7.5] - 2026-10-23
+
+- 修复选区颜色不生效：VS Code 1.139 的语言块([txt-reader])对编辑器颜色无效(实测预写也不生效)，改为全局 workbench.colorCustomizations 覆盖
+- txtreader.selection.background 现全局生效；#FFFFFF00 实测选区完全透明
+
 ## [0.7.4] - 2026-10-23
 
 - 新增 txtreader.selection.background：自定义 txt 选区颜色（只对 txt 生效；填 #FFFFFF00 表示完全透明无选区高亮，留空恢复主题默认）

@@ -318,19 +318,27 @@ async function applyReadingSettings(showMessage = false) {
     vscode.ConfigurationTarget.Global,
     true
   );
-  // 选区颜色: editor.selectionBackground 不支持语言级设置,
-  // 改用 workbench.colorCustomizations 的 [txt-reader] 语言块(实时生效)
+  // 选区颜色: VS Code 1.139 实测语言块([txt-reader])对编辑器颜色不生效,
+  // 只能全局覆盖(workbench.colorCustomizations 顶层)。
+  // 一并覆盖所有"选中文字"相关的高亮层: 主选区/失焦选区/同词高亮
   const wbConf = vscode.workspace.getConfiguration("workbench");
   const existing = wbConf.get("colorCustomizations") || {};
+  // 清理旧版本遗留的语言块写法
+  delete existing["[txt-reader]"];
+  const selectionKeys = [
+    "editor.selectionBackground",
+    "editor.inactiveSelectionBackground",
+    "editor.selectionHighlightBackground",
+    "editor.wordHighlightBackground",
+    "editor.wordHighlightStrongBackground",
+  ];
   if (selectionBackground) {
-    existing["[txt-reader]"] = {
-      ...(existing["[txt-reader]"] || {}),
-      "editor.selectionBackground": selectionBackground,
-    };
-  } else if (existing["[txt-reader]"]) {
-    delete existing["[txt-reader]"]["editor.selectionBackground"];
-    if (Object.keys(existing["[txt-reader]"]).length === 0) {
-      delete existing["[txt-reader]"];
+    for (const k of selectionKeys) {
+      existing[k] = selectionBackground;
+    }
+  } else {
+    for (const k of selectionKeys) {
+      delete existing[k];
     }
   }
   await wbConf.update(
@@ -535,13 +543,23 @@ async function saveCachedSpeakers(quotes, assignments, speakerNames) {
 
 /** 按 txtreader.dialogue.speakerColors 设置自动应用(打开文件/设置变化时) */
 async function applySpeakerMode() {
-  const mode = vscode.workspace
-    .getConfiguration("txtreader")
-    .get("dialogue.speakerColors", "off");
+  const conf = vscode.workspace.getConfiguration("txtreader");
+  const mode = conf.get("dialogue.speakerColors", "off");
   const editor = vscode.window.activeTextEditor;
   if (!editor || editor.document.languageId !== LANG_ID) return;
+  const quotes = speakers.extractQuotes(editor.document.getText());
   if (mode === "off") {
-    // 只清除自动应用的配色; 手动命令(循环/AI/向导)的结果保留
+    // 配置了自定义色表时, 即使模式为 off 也自动循环配色:
+    // 用户配色的意图就是让对话着色, 避免重启后"颜色丢了"的困惑
+    const custom = conf.get("dialogue.customColors", []);
+    if (Array.isArray(custom) && custom.length) {
+      rebuildSpeakerDecorationTypes();
+      speakerAssignments = quotes.map((_, i) => i % speakerPalette().length);
+      speakerAssignmentsSource = "auto";
+      refreshDialogueDecorations();
+      return;
+    }
+    // 否则只清除自动应用的配色; 手动命令(循环/AI/向导)的结果保留
     if (speakerAssignmentsSource === "auto") {
       speakerAssignments = [];
       speakerAssignmentsSource = "none";
@@ -549,7 +567,6 @@ async function applySpeakerMode() {
     }
     return;
   }
-  const quotes = speakers.extractQuotes(editor.document.getText());
   if (mode === "cycle") {
     rebuildSpeakerDecorationTypes();
     speakerAssignments = quotes.map((_, i) => i % speakerPalette().length);

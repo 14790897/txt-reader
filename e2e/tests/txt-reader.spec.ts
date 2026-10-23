@@ -389,7 +389,7 @@ test.describe('TXT 阅读器 E2E', () => {
               ? {
                   fontSize: lang['editor.fontSize'],
                   selectionBackground:
-                    s['workbench.colorCustomizations']?.['[txt-reader]']?.['editor.selectionBackground'] || null,
+                    s['workbench.colorCustomizations']?.['editor.selectionBackground'] || null,
                   lineHeight: lang['editor.lineHeight'],
                 }
               : null;
@@ -881,6 +881,21 @@ test.describe('TXT 阅读器 E2E', () => {
       const colors = await renderedSpanColors(page, '今天也要好好读书');
       if (colors.some((c) => c === 'rgb(78, 201, 176)')) break;
     }
+    await expect
+      .poll(() => renderedSpanColors(page, '今天也要好好读书'), {
+        timeout: 15_000,
+      })
+      .toContain('rgb(78, 201, 176)');
+
+    // 设置自定义色后应自动生效(无需再执行循环配色命令, 模拟重启后打开文档的场景)
+    writeCustom(['#00FF00']);
+    await expect
+      .poll(() => renderedSpanColors(page, '今天也要好好读书'), {
+        timeout: 15_000,
+      })
+      .toContain('rgb(0, 255, 0)');
+    // 清理恢复内置调色板
+    writeCustom([]);
     await expect
       .poll(() => renderedSpanColors(page, '今天也要好好读书'), {
         timeout: 15_000,
