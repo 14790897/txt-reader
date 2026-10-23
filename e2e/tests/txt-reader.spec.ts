@@ -268,6 +268,10 @@ test.describe('TXT 阅读器 E2E', () => {
       JSON.stringify(
         {
           'workbench.colorTheme': 'Default Dark Modern',
+          // 预置用户已有的颜色自定义: 回归覆盖"get() 返回 Proxy 不可直接修改"的 bug
+          'workbench.colorCustomizations': {
+            'editorCursor.foreground': '#fd5454',
+          },
           'txtreader.reading.fontSize': 24,
           'txtreader.reading.lineHeight': 2.4,
           'txtreader.highlight.dialogueStyle': 'bold',

@@ -336,7 +336,11 @@ async function applyReadingSettings(showMessage = false) {
   // 只能全局覆盖(workbench.colorCustomizations 顶层)。
   // 一并覆盖所有"选中文字"相关的高亮层: 主选区/失焦选区/同词高亮
   const wbConf = vscode.workspace.getConfiguration("workbench");
-  const existing = wbConf.get("colorCustomizations") || {};
+  // 注意: get() 返回的是 VS Code 的配置 Proxy, 直接增删属性会抛
+  // "'isExtensible' on proxy" 异常, 必须先深拷贝成普通对象再修改
+  const existing = JSON.parse(
+    JSON.stringify(wbConf.get("colorCustomizations") || {})
+  );
   // 清理旧版本遗留的语言块写法
   delete existing["[txt-reader]"];
   const selectionKeys = [
