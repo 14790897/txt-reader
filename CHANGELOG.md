@@ -1,5 +1,11 @@
 # 更新日志
 
+## [0.7.4] - 2026-10-23
+
+- 新增 txtreader.selection.background：自定义 txt 选区颜色（只对 txt 生效；填 #FFFFFF00 表示完全透明无选区高亮，留空恢复主题默认）
+- 实现走 workbench.colorCustomizations 语言块（editor.selectionBackground 不支持语言级设置，颜色类设置的标准机制）
+- E2E 阅读设置用例扩展选区断言，15 条全绿
+
 ## [0.7.3] - 2026-09-12
 
 - 新增「配色设置 (Color Setup)」命令：命令面板/右键菜单内直接管理对话样式与自定义调色板（添加/删除/清空颜色），改完立即预览

@@ -271,6 +271,7 @@ test.describe('TXT 阅读器 E2E', () => {
           'txtreader.reading.fontSize': 24,
           'txtreader.reading.lineHeight': 2.4,
           'txtreader.highlight.dialogueStyle': 'bold',
+          'txtreader.selection.background': '#FFFFFF00',
           'txtreader.dialogue.ai.baseUrl': `http://127.0.0.1:${mockAI.port}`,
           'txtreader.dialogue.ai.apiKey': 'test-key',
         },
@@ -387,6 +388,8 @@ test.describe('TXT 阅读器 E2E', () => {
             return lang
               ? {
                   fontSize: lang['editor.fontSize'],
+                  selectionBackground:
+                    s['workbench.colorCustomizations']?.['[txt-reader]']?.['editor.selectionBackground'] || null,
                   lineHeight: lang['editor.lineHeight'],
                 }
               : null;
@@ -396,7 +399,7 @@ test.describe('TXT 阅读器 E2E', () => {
         },
         { timeout: 20_000 },
       )
-      .toEqual({ fontSize: 24, lineHeight: 2.4 });
+      .toEqual({ fontSize: 24, lineHeight: 2.4, selectionBackground: '#FFFFFF00' });
 
     // 渲染层验证: 实际行高 ≈ 24 * 2.4 = 57.6px(默认密集行距只有 ~18px)
     // 锚定到包含小说原文的那个 monaco 编辑器(避免命中 Chat 输入框等其他编辑器)

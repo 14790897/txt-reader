@@ -2,7 +2,7 @@
   "name": "txt-beautifier",
   "displayName": "TXT 美化阅读器 (TXT Beautify Reader)",
   "description": "txt 阅读器：代码风格语法高亮、舒适阅读排版、按说话人对话配色，支持 AI 识别说话人与一键还原原文。",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "publisher": "take-a-rest-dev",
   "icon": "icon.png",
   "repository": {
@@ -323,6 +323,11 @@
           },
           "default": [],
           "description": "自定义说话人配色（十六进制颜色列表，如 [\"#FF6B6B\",\"#4ECDC4\"]；非空时替代内置调色板，从第一项开始循环使用）"
+        },
+        "txtreader.selection.background": {
+          "type": "string",
+          "default": "",
+          "description": "选中文字时的选区颜色（只对 txt 生效；留空用主题默认；填 #FFFFFF00 表示完全透明无选区高亮，也可填任意颜色如 #D0D0D0）"
         }
       }
     }

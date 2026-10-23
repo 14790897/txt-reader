@@ -294,6 +294,7 @@ async function applyReadingSettings(showMessage = false) {
   const fontSize = conf.get("reading.fontSize", 20);
   const lineHeight = conf.get("reading.lineHeight", 2.2);
   const fontFamily = conf.get("reading.fontFamily", "");
+  const selectionBackground = conf.get("selection.background", "");
 
   const editorConf = vscode.workspace.getConfiguration("editor", {
     languageId: LANG_ID,
@@ -317,10 +318,30 @@ async function applyReadingSettings(showMessage = false) {
     vscode.ConfigurationTarget.Global,
     true
   );
+  // 选区颜色: editor.selectionBackground 不支持语言级设置,
+  // 改用 workbench.colorCustomizations 的 [txt-reader] 语言块(实时生效)
+  const wbConf = vscode.workspace.getConfiguration("workbench");
+  const existing = wbConf.get("colorCustomizations") || {};
+  if (selectionBackground) {
+    existing["[txt-reader]"] = {
+      ...(existing["[txt-reader]"] || {}),
+      "editor.selectionBackground": selectionBackground,
+    };
+  } else if (existing["[txt-reader]"]) {
+    delete existing["[txt-reader]"]["editor.selectionBackground"];
+    if (Object.keys(existing["[txt-reader]"]).length === 0) {
+      delete existing["[txt-reader]"];
+    }
+  }
+  await wbConf.update(
+    "colorCustomizations",
+    existing,
+    vscode.ConfigurationTarget.Global
+  );
 
   if (showMessage) {
     vscode.window.showInformationMessage(
-      `已应用阅读设置：字号 ${fontSize}、行距 ${lineHeight}${fontFamily ? `、字体 ${fontFamily}` : ""}`
+      `已应用阅读设置：字号 ${fontSize}、行距 ${lineHeight}${fontFamily ? `、字体 ${fontFamily}` : ""}${selectionBackground ? `、选区色 ${selectionBackground}` : ""}`
     );
   }
   return true;
@@ -882,7 +903,10 @@ function activate(context) {
     }),
     vscode.commands.registerCommand("txtreader.setupColors", setupColors),
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration("txtreader.reading")) {
+      if (
+        e.affectsConfiguration("txtreader.reading") ||
+        e.affectsConfiguration("txtreader.selection")
+      ) {
         applyReadingSettings().catch(() => {});
       }
       if (e.affectsConfiguration("txtreader.highlight")) {
